@@ -1,16 +1,16 @@
 # 
-# Copyright (C) 2006-2008 OpenWrt.org
+# Copyright (C) 2006-2009 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 11053 2008-05-05 21:58:03Z ymano $
+# $Id: Makefile 15370 2009-04-24 02:29:34Z nico $
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=udev
 PKG_VERSION:=106
-PKG_RELEASE:=1
+PKG_RELEASE:=1.1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=@KERNEL/linux/utils/kernel/hotplug/

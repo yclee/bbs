@@ -1,22 +1,22 @@
 #
-# Copyright (C) 2008 OpenWrt.org
+# Copyright (C) 2008-2009 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 12289 2008-08-12 14:22:42Z florian $
+# $Id: Makefile 15885 2009-05-17 01:43:57Z nico $
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=wpa_supplicant
 PKG_VERSION:=0.6.3
-PKG_RELEASE:=1
+PKG_RELEASE:=1.1
 PKG_MD5SUM:=b51b2975f21006f85f7297f3fb1acde1
 
 PKG_SOURCE_URL:=http://hostap.epitest.fi/releases
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 
-PKG_BUILD_DEPENDS:=madwifi
+PKG_BUILD_DEPENDS:=PACKAGE_kmod-madwifi:madwifi
 
 include $(INCLUDE_DIR)/package.mk
 STAMP_CONFIGURED:=$(STAMP_CONFIGURED)_$(call confvar,CONFIG_PACKAGE_kmod-madwifi CONFIG_WPA_SUPPLICANT_NO_TIMESTAMP_CHECK)

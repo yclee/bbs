@@ -23,7 +23,12 @@ add_route() {
 		config_get gateway "$interface" gateway
 	}
 
-	netmask="${netmask:-255.255.255.255}"
+	# handle "0.0.0.0" as "no gateway given" to allow
+	# defining gateway-less routes while still keeping
+	# the possibility to have static routes with a
+	# proper gateway on interfaces with dynamic ips 
+	[ "$gateway" = "0.0.0.0" ] && gateway=""
+
 	dest="${netmask:+-net "$target" netmask "$netmask"}"
 	dest="${dest:--host "$target"}"
 	

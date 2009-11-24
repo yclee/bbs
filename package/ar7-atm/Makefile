@@ -4,7 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 10203 2008-01-15 03:25:11Z matteo $
+# $Id: Makefile 16072 2009-05-26 08:44:33Z florian $
 
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
@@ -55,12 +55,14 @@ endef
 
 define KernelPackage/sangam-atm-annex-a/install
 	mkdir -p $(1)/lib/firmware
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/ar0700mp.bin $(1)/lib/firmware/ar0700xx.bin
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/ar0700mp.bin $(1)/lib/firmware/
+	ln -sf ar0700mp.bin $(1)/lib/firmware/ar0700xx.bin
 endef
 
 define KernelPackage/sangam-atm-annex-b/install
 	mkdir -p $(1)/lib/firmware
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/ar0700db.bin $(1)/lib/firmware/ar0700xx.bin
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/ar0700db.bin $(1)/lib/firmware/
+	ln -sf ar0700db.bin $(1)/lib/firmware/ar0700xx.bin
 endef
 
 $(eval $(call KernelPackage,sangam-atm-annex-a))

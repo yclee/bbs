@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2008 OpenWrt.org
+# Copyright (C) 2008-2009 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=firewall
 
 PKG_VERSION:=1
-PKG_RELEASE:=1
+PKG_RELEASE:=1.1
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -42,6 +42,8 @@ define Package/firewall/install
 	$(INSTALL_BIN) ./files/firewall.init $(1)/etc/init.d/firewall
 	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface
 	$(INSTALL_DATA) ./files/20-firewall $(1)/etc/hotplug.d/iface
+	$(INSTALL_DIR) $(1)/etc
+	$(INSTALL_DATA) ./files/firewall.user $(1)/etc
 endef
 
 $(eval $(call BuildPackage,firewall))

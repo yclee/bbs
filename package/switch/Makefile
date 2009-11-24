@@ -1,16 +1,16 @@
 # 
-# Copyright (C) 2006 OpenWrt.org
+# Copyright (C) 2006-2009 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 10138 2008-01-06 19:28:26Z nbd $
+# $Id: Makefile 15321 2009-04-21 11:38:28Z nico $
 
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=kmod-switch
-PKG_RELEASE:=1
+PKG_RELEASE:=1.1
 
 include $(INCLUDE_DIR)/package.mk
 

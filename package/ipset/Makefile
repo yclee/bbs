@@ -4,7 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 9382 2007-10-20 20:03:52Z nbd $
+# $Id: Makefile 15409 2009-04-25 16:26:12Z nico $
 #
 include $(TOPDIR)/rules.mk
 
@@ -21,7 +21,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/ipset
   SECTION:=net
   CATEGORY:=Network
-  DEPENDS:=@!TARGET_etrax @LINUX_2_6
+  DEPENDS:=@LINUX_2_6
   TITLE:=Netfilter ip sets administration utility
   URL:=http://ipset.netfilter.org/
 endef

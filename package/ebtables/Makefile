@@ -4,7 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 12842 2008-10-03 18:33:48Z agb $
+# $Id: Makefile 15745 2009-05-09 21:28:33Z nbd $
 
 include $(TOPDIR)/rules.mk
 
@@ -43,6 +43,8 @@ endef
 define Package/ebtables-utils/description
 	$(call Package/ebtables/description)
 endef
+
+MAKE_VARS += EXT_LIBSI="$(LIBGCC_S)"
 
 MAKE_FLAGS += \
 	CFLAGS="$(TARGET_CFLAGS)" \

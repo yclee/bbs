@@ -122,6 +122,7 @@ enable_broadcom() {
 	config_get_bool frameburst "$device" frameburst
 	config_get macfilter "$device" macfilter
 	config_get maclist "$device" maclist
+	config_get macaddr "$device" macaddr
 	config_get txpower "$device" txpower
 	local vif_pre_up vif_post_up vif_do_up vif_txpower
 
@@ -198,6 +199,7 @@ enable_broadcom() {
 				case "$enc" in
 					wpa*+wpa2*|WPA*+WPA2*|*psk+*psk2|*PSK+*PSK2) auth=132; wsec=6;;
 					wpa2*|WPA2*|*PSK2|*psk2) auth=128; wsec=4;;
+					*aes|*AES) auth=4; wsec=4;;
 					*) auth=4; wsec=2;;
 				esac
 				eval "${vif}_key=\"\$key\""
@@ -245,12 +247,13 @@ enable_broadcom() {
 		
 		config_get ifname "$vif" ifname
 		#append if_up "ifconfig $ifname up" ";$N"
+
 		local net_cfg bridge
 		net_cfg="$(find_net_config "$vif")"
 		[ -z "$net_cfg" ] || {
 			bridge="$(bridge_interface "$net_cfg")"
-			append if_up "start_net '$ifname' '$net_cfg'" ";$N"
 			append if_up "set_wifi_up '$vif' '$ifname'" ";$N"
+			append if_up "start_net '$ifname' '$net_cfg' \$(wlc ifname '$ifname' bssid)" ";$N"
 		}
 		[ -z "$nasopts" ] || {
 			eval "${vif}_ssid=\"\$ssid\""
@@ -273,9 +276,9 @@ enable_broadcom() {
 	wlc stdin <<EOF
 $ifdown
 
+apsta $apsta
 ap $ap
 ${mssid:+mssid $mssid}
-apsta $apsta
 infra $infra
 ${wet:+wet 1}
 802.11d 0

@@ -42,7 +42,7 @@ scan_atheros() {
 		*) echo "$device: Invalid mode combination in config"; return 1;;
 	esac
 
-	config_set "$device" vifs "${ap:+$ap }${adhoc:+$adhoc }${ahdemo:+$ahdemo }${sta:+$sta }${wds:+$wds }${monitor:+$monitor}"
+	config_set "$device" vifs "${sta:+$sta }${ap:+$ap }${adhoc:+$adhoc }${ahdemo:+$ahdemo }${wds:+$wds }${monitor:+$monitor}"
 }
 
 
@@ -67,6 +67,17 @@ disable_atheros() (
 
 enable_atheros() {
 	local device="$1"
+
+	config_get regdomain "$device" regdomain
+	[ -n "$regdomain" ] && echo "$regdomain" > /proc/sys/dev/$device/regdomain
+
+	config_get country "$device" country
+	[ -z "$country" ] && country="0"
+	echo "$country" > /proc/sys/dev/$device/countrycode
+
+	config_get_bool outdoor "$device" outdoor "0"
+	echo "$outdoor" > /proc/sys/dev/$device/outdoor
+
 	config_get channel "$device" channel
 	config_get vifs "$device" vifs
 	config_get txpower "$device" txpower
@@ -111,10 +122,10 @@ enable_atheros() {
 			*fh) hwmode=fh;;
 			*) hwmode=auto;;
 		esac
-		iwpriv "$ifname" mode "$hwmode"
 		iwpriv "$ifname" pureg "$pureg"
 
 		[ "$first" = 1 ] && {
+			iwpriv "$ifname" mode "$hwmode"
 			iwconfig "$ifname" channel "$channel" >/dev/null 2>/dev/null 
 		}
 	
@@ -158,7 +169,7 @@ enable_atheros() {
 		esac
 
 		case "$mode" in
-			adhoc|ahdemo)
+			sta|adhoc|ahdemo)
 				config_get addr "$vif" bssid
 				[ -z "$addr" ] || { 
 					iwconfig "$ifname" ap "$addr"
@@ -212,9 +223,6 @@ enable_atheros() {
 		config_get distance "$device" distance
 		[ -n "$distance" ] && athctrl -i "$device" -d "$distance" >&-
 
-		config_get txpwr "$vif" txpower
-		[ -n "$txpwr" ] && iwconfig "$ifname" txpower "${txpwr%%.*}"
-
 		config_get rate "$vif" rate
 		[ -n "$rate" ] && iwconfig "$ifname" rate "${rate%%.*}"
 
@@ -248,8 +256,8 @@ enable_atheros() {
 		config_get_bool ar "$vif" ar
 		[ -n "$ar" ] && iwpriv "$ifname" ar "$ar"
 
-		config_get_bool turbo "$vif" turbo
-		[ -n "$turbo" ] && iwpriv "$ifname" turbo "$turbo"
+		config_get_bool beacon_power "$vif" beacon_power
+		[ -n "$beacon_power" ] && iwpriv "$ifname" beacon_pwr "$beacon_power"
 
 		config_get_bool doth "$vif" doth 0
 		[ -n "$doth" ] && iwpriv "$ifname" doth "$doth"
@@ -281,6 +289,7 @@ enable_atheros() {
 		esac
 
 		ifconfig "$ifname" up
+
 		local net_cfg bridge
 		net_cfg="$(find_net_config "$vif")"
 		[ -z "$net_cfg" ] || {
@@ -288,8 +297,10 @@ enable_atheros() {
 			config_set "$vif" bridge "$bridge"
 			start_net "$ifname" "$net_cfg"
 		}
-		[ -n "$ssid" ] && iwconfig "$ifname" essid on
-		iwconfig "$ifname" essid "$ssid"
+		[ -n "$ssid" ] && {
+			iwconfig "$ifname" essid on
+			iwconfig "$ifname" essid "$ssid"
+		}
 		set_wifi_up "$vif" "$ifname"
 
 		# TXPower settings only work if device is up already

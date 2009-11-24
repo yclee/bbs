@@ -4,7 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 13242 2008-11-16 22:09:18Z florian $
+# $Id: Makefile 16257 2009-06-01 14:58:13Z nico $
 
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
@@ -13,7 +13,7 @@ PKG_NAME:=iptables
 
 ifeq ($(CONFIG_LINUX_2_4),y)
   PKG_VERSION:=1.3.8
-  PKG_RELEASE:=4
+  PKG_RELEASE:=4.1
   PKG_MD5SUM:=0a9209f928002e5eee9cdff8fef4d4b3
   MAKE_TARGETS:=experimental install-experimental
 endif

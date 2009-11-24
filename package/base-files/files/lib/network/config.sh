@@ -83,6 +83,8 @@ sort_list() {
 prepare_interface() {
 	local iface="$1"
 	local config="$2"
+	local vifmac="$3"
+	local proto
 
 	# if we're called for the bridge interface itself, don't bother trying
 	# to create any interfaces here. The scripts have already done that, otherwise
@@ -90,9 +92,18 @@ prepare_interface() {
 	[ "br-$config" = "$iface" -o -e "$iface" ] && return 0;
 	
 	ifconfig "$iface" 2>/dev/null >/dev/null && {
-		# make sure the interface is removed from any existing bridge and deconfigured 
-		ifconfig "$iface" 0.0.0.0
+		config_get proto "$config" proto
+
+		# make sure the interface is removed from any existing bridge and deconfigured,
+		# (deconfigured only if the interface is not set to proto=none)
 		unbridge "$iface"
+		[ "$proto" = none ] || ifconfig "$iface" 0.0.0.0
+
+		# Change interface MAC address if requested
+		[ -n "$vifmac" ] && {
+			ifconfig "$iface" down
+			ifconfig "$iface" hw ether "$vifmac" up
+		}
 	}
 
 	# Setup VLAN interfaces
@@ -172,6 +183,9 @@ setup_interface_static() {
 		done
 	}
 
+	config_get type "$config" TYPE                                                                               
+	[ "$type" = "alias" ] && return 0
+
 	env -i ACTION="ifup" INTERFACE="$config" DEVICE="$iface" PROTO=static /sbin/hotplug-call "iface" &
 }
 
@@ -209,6 +223,7 @@ setup_interface_alias() {
 setup_interface() {
 	local iface="$1"
 	local config="$2"
+	local vifmac="$4"
 	local proto
 	local macaddr
 
@@ -218,7 +233,7 @@ setup_interface() {
 	}
 	proto="${3:-$(config_get "$config" proto)}"
 	
-	prepare_interface "$iface" "$config" || return 0
+	prepare_interface "$iface" "$config" "$vifmac" || return 0
 	
 	[ "$iface" = "br-$config" ] && {
 		# need to bring up the bridge and wait a second for 
@@ -231,9 +246,10 @@ setup_interface() {
 	# Interface settings
 	config_get mtu "$config" mtu
 	config_get macaddr "$config" macaddr
-	grep "$iface:" /proc/net/dev > /dev/null && \
-		$DEBUG ifconfig "$iface" down && \
+	grep "$iface:" /proc/net/dev > /dev/null && {
+		[ -n "$macaddr" ] && $DEBUG ifconfig "$iface" down
 		$DEBUG ifconfig "$iface" ${macaddr:+hw ether "$macaddr"} ${mtu:+mtu $mtu} up
+	}
 	set_interface_ifname "$config" "$iface"
 
 	pidfile="/var/run/$iface.pid"
@@ -276,6 +292,11 @@ setup_interface() {
 			fi
 		;;
 	esac
+	[ "$proto" = none ] || {
+		for ifn in `ifconfig | grep "^$iface:" | awk '{print $1}'`; do
+			ifconfig "$ifn" down
+		done
+	}
 	config_set "$config" aliases ""
 	config_set "$config" alias_count 0
 	config_foreach setup_interface_alias alias "$config" "$iface"

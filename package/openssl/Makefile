@@ -4,13 +4,13 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 14104 2009-01-19 11:03:31Z agb $
+# $Id: Makefile 15880 2009-05-17 00:25:41Z nico $
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=openssl
 PKG_VERSION:=0.9.8i
-PKG_RELEASE:=3
+PKG_RELEASE:=3.1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=http://www.openssl.org/source/ \
@@ -92,8 +92,9 @@ endef
 TARGET_CFLAGS += $(FPIC)
 
 define Build/Compile
-	rm -rf $(PKG_INSTALL_DIR)
-	mkdir -p $(PKG_INSTALL_DIR)
+	# XXX: OpenSSL "make depend" will look for installed headers before its own,
+	# so remove installed stuff first
+	-$(SUBMAKE) -j1 clean-staging
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		MAKEDEPPROG="$(TARGET_CROSS)gcc" \
 		OPENWRT_OPTIMIZATION_FLAGS="$(TARGET_CFLAGS)" \

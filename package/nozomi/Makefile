@@ -4,7 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 7143 2007-05-08 21:48:19Z nbd $
+# $Id: Makefile 8659 2007-09-07 08:34:51Z nico $
 
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
@@ -24,10 +24,8 @@ PKG_UNPACK:=mkdir -p $(PKG_BUILD_DIR); gzip -dc $(DL_DIR)/$(PKG_SOURCE) | $(TAR)
 define KernelPackage/nozomi
   SUBMENU:=Other modules
   TITLE:=Option Globetrotter HSDPA driver
-  DESCRIPTION:=Option Globetrotter HSDPA driver
   URL:=http://www.pharscape.org/
   DEPENDS:=@LINUX_2_4 @PCMCIA_SUPPORT
-  VERSION:=$(LINUX_VERSION)+$(PKG_VERSION)-$(BOARD)-$(PKG_RELEASE)
   FILES:=$(PKG_BUILD_DIR)/noz.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,70,noz)
 endef

@@ -1,16 +1,18 @@
 # 
-# Copyright (C) 2006 OpenWrt.org
+# Copyright (C) 2007 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
 
-include $(TMP_DIR)/.host.mk
+TMP_DIR ?= $(TOPDIR)/tmp
+-include $(TMP_DIR)/.host.mk
 
-export TAR
+export TAR FIND
 
 ifneq ($(__host_inc),1)
 __host_inc:=1
+.PRECIOUS: $(TMP_DIR)/.host.mk
 $(TMP_DIR)/.host.mk: $(TOPDIR)/include/host.mk
 	@mkdir -p $(TMP_DIR)
 	@( \
@@ -28,13 +30,20 @@ $(TMP_DIR)/.host.mk: $(TOPDIR)/include/host.mk
 		TAR=`which gtar 2>/dev/null`; \
 		[ -n "$$TAR" -a -x "$$TAR" ] || TAR=`which tar 2>/dev/null`; \
 		echo "TAR:=$$TAR" >> $@; \
+		FIND=`which gfind 2>/dev/null`; \
+		[ -n "$$FIND" -a -x "$$FIND" ] || FIND=`which find 2>/dev/null`; \
+		echo "FIND:=$$FIND" >> $@; \
 		echo "BASH:=$(shell which bash)" >> $@; \
+		if $$FIND -L /tmp -maxdepth 0 >/dev/null 2>/dev/null; then \
+			echo "FIND_L=$$FIND -L \$$(1)" >>$@; \
+		else \
+			echo "FIND_L=$$FIND \$$(1) -follow" >> $@; \
+		fi; \
+		if xargs --help 2>&1 | grep 'gnu.org' >/dev/null; then \
+			echo 'XARGS:=xargs -r' >> $@; \
+		else \
+			echo 'XARGS:=xargs' >> $@; \
+		fi; \
 	)
 
-endif
-
-ifeq ($(HOST_OS),Linux)
-  XARGS:=xargs -r
-else
-  XARGS:=xargs
 endif

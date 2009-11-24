@@ -4,9 +4,10 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 6582 2007-03-16 20:21:39Z nbd $
+# $Id: Makefile 9694 2007-12-09 18:53:06Z nbd $
 
 include $(TOPDIR)/rules.mk
+include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=pcmcia-cs
 PKG_VERSION:=3.2.8
@@ -21,12 +22,12 @@ include $(INCLUDE_DIR)/package.mk
 define Package/pcmcia-cs
   SECTION:=utils
   CATEGORY:=Utilities
-  DEPENDS:=@PCMCIA_SUPPORT
+  DEPENDS:=@LINUX_2_4 @PCMCIA_SUPPORT
   TITLE:=PCMCIA/Cardbus management utilities
   URL:=http://pcmcia-cs.sourceforge.net/
 endef
 
-$(PKG_BUILD_DIR)/.configured: $(LINUX_DIR)/.config
+$(STAMP_CONFIGURED): $(LINUX_DIR)/.config
 
 define Build/Configure
 	( cd $(PKG_BUILD_DIR); \
@@ -61,8 +62,8 @@ define Package/pcmcia-cs/install
 	$(INSTALL_DIR) $(1)/etc
 	$(CP) $(PKG_INSTALL_DIR)/etc/pcmcia $(1)/etc/
 	$(INSTALL_DIR) $(1)/usr/sbin
-	$(CP) $(PKG_INSTALL_DIR)/sbin/cardctl $(1)/usr/sbin/
-	$(CP) $(PKG_INSTALL_DIR)/sbin/cardmgr $(1)/usr/sbin/
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/sbin/cardctl $(1)/usr/sbin/
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/sbin/cardmgr $(1)/usr/sbin/
 endef
 
 $(eval $(call BuildPackage,pcmcia-cs))

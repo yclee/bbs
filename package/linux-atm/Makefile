@@ -4,7 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 7011 2007-04-20 15:11:18Z nbd $
+# $Id: Makefile 9906 2007-12-25 01:40:47Z nbd $
 
 include $(TOPDIR)/rules.mk
 
@@ -18,17 +18,32 @@ PKG_MD5SUM:=84fef49cc39ff2605204246666f65864
 
 include $(INCLUDE_DIR)/package.mk
 
-define Package/linux-atm/Default
+define Package/linux-atm
+  SECTION:=libs
+  CATEGORY:=Libraries
+  TITLE:=Linux ATM library
   URL:=http://linux-atm.sourceforge.net/
 endef
 
-define Package/linux-atm
-  $(call Package/linux-atm/Default)
-  SECTION:=libs
-  CATEGORY:=Libraries
-  TITLE:=Linux ATM Library
-  DESCRIPTION:=\
-	This package contains a library for accessing the Linux ATM subsystem.
+define Package/linux-atm/description
+  This package contains a library for accessing the Linux ATM subsystem.
+endef
+
+define Package/atm-tools
+  SECTION:=net
+  CATEGORY:=Network
+  DEPENDS:=linux-atm
+  TITLE:=Linux ATM tools
+  URL:=http://linux-atm.sourceforge.net/
+endef
+
+define Package/atm-tools/description
+  This package contains the Linux ATM tools.
+endef
+
+define Build/Prepare
+	$(call Build/Prepare/Default)
+	$(INSTALL_BIN) $(SCRIPT_DIR)/config.sub $(SCRIPT_DIR)/config.guess $(PKG_BUILD_DIR)/
 endef
 
 define Build/Configure
@@ -37,35 +52,34 @@ define Build/Configure
 	touch $(PKG_BUILD_DIR)/stamp-h.in
 endef
 
-TARGET_CFLAGS := -I$(PKG_BUILD_DIR)/src/include $(TARGET_CFLAGS)
 define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR) \
-		$(TARGET_CONFIGURE_OPTS) \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
 		all install
 endef
 
-define Build/InstallDev
-	mkdir -p $(STAGING_DIR)/usr/include
+ifneq ($(CONFIG_PACKAGE_linux-atm),)
+  define Build/InstallDev
+	mkdir -p $(1)/usr/include
 	$(CP)	$(PKG_INSTALL_DIR)/usr/include/atm{,d,sap}.h \
-		$(STAGING_DIR)/usr/include/
-	mkdir -p $(STAGING_DIR)/usr/lib
+		$(1)/usr/include/
+	mkdir -p $(1)/usr/lib
 	$(CP)	$(PKG_INSTALL_DIR)/usr/lib/libatm.{a,so*} \
-		$(STAGING_DIR)/usr/lib/
-endef
-
-define Build/UninstallDev
-	rm -rf	$(STAGING_DIR)/usr/include/atm{,d,sap}.h \
-		$(STAGING_DIR)/usr/lib/libatm.{a,so*}
-endef
+		$(1)/usr/lib/
+  endef
+endif
 
 define Package/linux-atm/install
 	$(INSTALL_DIR) $(1)/usr/lib
-	cp -f $(PKG_INSTALL_DIR)/usr/lib/libatm.so.1 $(1)/usr/lib
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libatm.so.* $(1)/usr/lib/
+endef
+
+define Package/atm-tools/install
+	$(INSTALL_DIR) $(1)/usr/sbin/
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/sbin/atmarp{,d} $(1)/usr/sbin/
+	$(INSTALL_DIR) $(1)/lib/network
+	$(INSTALL_BIN) ./files/ipoa.sh $(1)/lib/network/
 endef
 
 $(eval $(call BuildPackage,linux-atm))
-
-$(eval $(call RequireCommand,automake, \
-	$(PKG_NAME) requires automake. \
-))
+$(eval $(call BuildPackage,atm-tools))

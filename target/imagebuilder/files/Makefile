@@ -1,61 +1,28 @@
-# Makefile for the OpenWrt Image Builder
+# Makefile for OpenWrt
 #
-# Copyright (C) 2006-2007 OpenWrt.org
+# Copyright (C) 2007-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
 
-export TOPDIR=${CURDIR}
-
+TOPDIR:=${CURDIR}
+LC_ALL:=C
+LANG:=C
+export TOPDIR LC_ALL LANG
+export KBUILD_VERBOSE=99
 all: help
 
-include rules.mk
-include .config
+include $(TOPDIR)/include/host.mk
 
-SHELL:=/usr/bin/env bash
-export LC_ALL=C
-export LANG=C
-ifeq ($(KBUILD_VERBOSE),99)
-  MAKE:=3>/dev/null $(MAKE)
+ifneq ($(OPENWRT_BUILD),1)
+  override OPENWRT_BUILD=1
+  export OPENWRT_BUILD
 endif
-export IS_TTY=$(shell tty -s && echo 1 || echo 0)
-export IMAGEBUILDER=1
 
-# override variables from rules.mk
-PACKAGE_DIR:=$(TOPDIR)/packages
-IPKG:= \
-  IPKG_TMP="$(TOPDIR)/tmp/ipkgtmp" \
-  IPKG_INSTROOT="$(TARGET_DIR)" \
-  IPKG_CONF_DIR="$(TOPDIR)/tmp" \
-  IPKG_OFFLINE_ROOT="$(TARGET_DIR)" \
-  $(SCRIPT_DIR)/ipkg -force-defaults
-
-
-define Profile/Default
-  ID:=
-  NAME:=
-  KCONFIG:=
-  PACKAGES:=
-endef
-
-define AddProfile
-  $(eval $(call Profile/Default))
-  $(eval $(call Profile/$(1)))
-  ifneq ($(ID),)
-    ifeq ($(PROFILE),)
-      PROFILE:=$(ID)
-    endif
-	$(ID)_NAME:=$(NAME)
-	$(ID)_PACKAGES:=$(PACKAGES)
-    ifeq ($(KCONFIG),)
-      PROFILE_LIST += \
-  		echo '$(ID):'; [ -z '$(NAME)' ] || echo '	$(NAME)'; echo '	Packages: $(PACKAGES)';
-    endif
-  endif
-endef
-
-include .target.mk
+include rules.mk
+include $(INCLUDE_DIR)/debug.mk
+include $(INCLUDE_DIR)/depends.mk
 
 define Helptext
 Available Commands:
@@ -79,18 +46,47 @@ $(eval $(call shexport,Helptext))
 help: FORCE
 	echo "$$$(call shvar,Helptext)"
 
+
+# override variables from rules.mk
+PACKAGE_DIR:=$(TOPDIR)/packages
+IPKG:= \
+  IPKG_TMP="$(TOPDIR)/tmp/ipkgtmp" \
+  IPKG_INSTROOT="$(TARGET_DIR)" \
+  IPKG_CONF_DIR="$(TOPDIR)/tmp" \
+  IPKG_OFFLINE_ROOT="$(TARGET_DIR)" \
+  $(SCRIPT_DIR)/ipkg -force-defaults
+
+define Profile
+  $(eval $(call Profile/Default))
+  $(eval $(call Profile/$(1)))
+  ifeq ($(PROFILE),)
+    PROFILE:=$(1)
+  endif
+  $(1)_NAME:=$(NAME)
+  $(1)_PACKAGES:=$(PACKAGES)
+  PROFILE_LIST += \
+  	echo '$(1):'; [ -z '$(NAME)' ] || echo '	$(NAME)'; echo '	Packages: $(PACKAGES)';
+endef
+
+include $(INCLUDE_DIR)/target.mk
+
 info: FORCE
-	echo 'Current Target: "$(BOARDNAME)"'
+	echo 'Current Target: "$(BOARD)$(if $(SUBTARGET), ($(BOARDNAME)))"'
+	echo 'Default Packages: $(DEFAULT_PACKAGES)'
 	echo 'Available Profiles:'
 	echo; $(PROFILE_LIST)
 
 $(TOPDIR)/tmp/ipkg.conf: FORCE
 	@mkdir -p $(TOPDIR)/tmp
 	@echo 'dest root /' > $@
-	@echo 'src packages file:$(TOPDIR)/packages' >> $@
+	@echo 'src packages file:$(PACKAGE_DIR)' >> $@
 
 BUILD_PACKAGES:=$(sort $(DEFAULT_PACKAGES) $(PACKAGES) $($(PROFILE)_PACKAGES) kernel)
+ifeq ($(KERNEL),2.4)
 BUILD_PACKAGES:=$(patsubst base-files,base-files-$(BOARD)-$(KERNEL),$(BUILD_PACKAGES))
+else
+BUILD_PACKAGES:=$(patsubst base-files,base-files-$(BOARD),$(BUILD_PACKAGES))
+endif
 # "-pkgname" in the package list means remove "pkgname" from the package list
 BUILD_PACKAGES:=$(filter-out $(filter -%,$(BUILD_PACKAGES)) $(patsubst -%,%,$(filter -%,$(BUILD_PACKAGES))),$(BUILD_PACKAGES))
 
@@ -100,7 +96,7 @@ image:
 		echo 'Use "make info" to get a list of available target profiles'; \
 		false; \
 	fi
-	echo 'Building images for $(BOARDNAME) - $($(PROFILE)_NAME)'
+	echo 'Building images for $(BOARD) - $($(PROFILE)_NAME)'
 	echo 'Packages: $(BUILD_PACKAGES)'
 	echo
 	rm -rf $(TARGET_DIR)
@@ -116,7 +112,9 @@ endif
 package_index: $(TOPDIR)/tmp/ipkg.conf FORCE
 	@echo
 	@echo Building package index...
-	(cd $(PACKAGE_DIR); $(SCRIPT_DIR)/ipkg-make-index.sh . > Packages) >/dev/null 2>/dev/null
+	(cd $(PACKAGE_DIR); $(SCRIPT_DIR)/ipkg-make-index.sh . > Packages && \
+		gzip -9c Packages > Packages.gz \
+	) >/dev/null 2>/dev/null
 	$(IPKG) update
 
 package_install: FORCE
@@ -132,7 +130,7 @@ copy_files: FORCE
 package_postinst: FORCE
 	@echo
 	@echo Activating init scripts
-	( \
+	@( \
 		cd $(BUILD_DIR)/root; \
 		for script in ./etc/init.d/*; do \
 			grep '#!/bin/sh /etc/rc.common' $$script >/dev/null || continue; \
@@ -143,11 +141,11 @@ package_postinst: FORCE
 build_image: FORCE
 	@echo
 	@echo Building images...
-	$(NO_TRACE_MAKE) -C target/linux/$(BOARD)-$(KERNEL)/image install IB=1
+	$(NO_TRACE_MAKE) -C target/linux/$(BOARD)/image install TARGET_BUILD=1 IB=1
 	
 clean:
 	rm -rf tmp $(TARGET_DIR) $(BIN_DIR)
 
-.PHONY: FORCE
+
 .SILENT: help info image
-%: ;
+

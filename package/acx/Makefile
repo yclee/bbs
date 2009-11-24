@@ -1,5 +1,5 @@
 # 
-# Copyright (C) 2006 OpenWrt.org
+# Copyright (C) 2006-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -10,15 +10,15 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=acx
-PKG_VERSION:=20070101
+PKG_VERSION:=20080210
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
-PKG_SOURCE_URL:=@openwrt/
-PKG_MD5SUM:=ec6322b9c82781897a9433ef0cefda6f
-PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
-#PKG_CAT:=bzcat
-PKG_UNPACK:=bzcat $(DL_DIR)/$(PKG_SOURCE) | \
+PKG_SOURCE_URL:=@SF/acx100
+PKG_MD5SUM:=7d5ce3215708e4e9f95cf567a9ee3a12
+
+PKG_UNPACK:= \
+	bzcat $(DL_DIR)/$(PKG_SOURCE) | \
 	$(TAR) -C $(KERNEL_BUILD_DIR) $(TAR_OPTIONS); \
 	chmod -R u+w $(PKG_BUILD_DIR)
 
@@ -26,16 +26,34 @@ include $(INCLUDE_DIR)/package.mk
 
 define KernelPackage/acx
   TITLE:=Driver for TI ACX1xx chipset
-  DEPENDS:=@LINUX_2_6&&!LINUX_2_6_AVR32 +wireless-tools
-  DESCRIPTION:=\
-	This package contains a driver for TI ACX1xx 802.11a/b/g chipsets.
+  DEPENDS:=@LINUX_2_6 @CONFIG_PCI||TARGET_ar7 +wireless-tools
   URL:=http://acx100.sourceforge.net/
-  VERSION:=$(LINUX_VERSION)+$(PKG_VERSION)-$(BOARD)-$(PKG_RELEASE)
   SUBMENU:=Wireless Drivers
-  FILES:= \
-		$(PKG_BUILD_DIR)/acx.$(LINUX_KMOD_SUFFIX)
+  FILES:= $(PKG_BUILD_DIR)/acx.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,acx)
 endef
+
+define KernelPackage/acx/description
+ This package contains a driver for TI ACX1xx 802.11a/b/g chipsets.
+endef
+
+C16_FW:=tiacx111c16
+C19_FW:=tiacx111c19
+
+define Download/tiacx111c16
+  FILE:=$(C16_FW)
+  URL:=http://teknoraver.net/software/acx-mac80211/
+  MD5SUM:=7026826460376f6b174f9225bd7781b9
+endef
+$(eval $(call Download,tiacx111c16))
+
+define Download/tiacx111c19
+  FILE:=$(C19_FW)
+  URL:=http://ipkg.k1k2.de/files/
+  MD5SUM:=a1fa9681e297b4e36e257090fc12265a
+endef
+$(eval $(call Download,tiacx111c19))
+
 
 define Build/Compile
 	$(MAKE) -C $(LINUX_DIR) \
@@ -51,6 +69,14 @@ define Build/Compile
 		CONFIG_ACX=m \
 		CONFIG_ACX_PCI=m \
 		modules
+endef
+
+define KernelPackage/acx/install
+	$(INSTALL_DIR) $(1)/lib/firmware
+	$(INSTALL_DATA) $(DL_DIR)/$(C16_FW) $(1)/lib/firmware/
+	$(INSTALL_DATA) $(DL_DIR)/$(C19_FW) $(1)/lib/firmware/
+	$(INSTALL_DIR) $(1)/lib/wifi
+	$(INSTALL_DATA) ./files/lib/wifi/acx.sh $(1)/lib/wifi/
 endef
 
 $(eval $(call KernelPackage,acx))

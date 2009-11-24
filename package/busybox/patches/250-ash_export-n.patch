@@ -1,37 +1,34 @@
-Index: busybox-1.4.2/shell/ash.c
-===================================================================
---- busybox-1.4.2.orig/shell/ash.c	2007-06-04 13:21:32.248074216 +0200
-+++ busybox-1.4.2/shell/ash.c	2007-06-04 13:21:34.000807760 +0200
-@@ -12237,9 +12237,18 @@
+--- a/shell/ash.c
++++ b/shell/ash.c
+@@ -11909,8 +11909,17 @@
  	const char *p;
  	char **aptr;
  	int flag = argv[0][0] == 'r'? VREADONLY : VEXPORT;
 +	int mask = ~0;
- 	int notp;
- 
--	notp = nextopt("p") - 'p';
-+	while ((notp = nextopt("np"))) {
-+		if (notp == 'n') {
++	int nopt;
++	while ((nopt = nextopt("np"))) {
++		if (nopt == 'n') {
 +				mask = ~flag;
 +		} else { /* p */
 +			break;
 +		}
 +	}
-+
-+	notp -= 'p';
- 	if (notp && ((name = *(aptr = argptr)))) {
- 		do {
- 			if ((p = strchr(name, '=')) != NULL) {
-@@ -12247,10 +12256,11 @@
- 			} else {
- 				if ((vp = *findvar(hashvar(name), name))) {
- 					vp->flags |= flag;
-+					vp->flags &= mask;
- 					continue;
+ 
+-	if (nextopt("p") != 'p') {
++	if (nopt != 'p') {
+ 		aptr = argptr;
+ 		name = *aptr;
+ 		if (name) {
+@@ -11922,10 +11931,12 @@
+ 					vp = *findvar(hashvar(name), name);
+ 					if (vp) {
+ 						vp->flags |= flag;
++						vp->flags &= mask;
+ 						continue;
+ 					}
  				}
- 			}
--			setvar(name, p, flag);
-+			setvar(name, p, flag & mask);
- 		} while ((name = *++aptr) != NULL);
- 	} else {
- 		showvars(argv[0], flag, 0);
+ 				setvar(name, p, flag);
++				setvar(name, p, flag & mask);
+ 			} while ((name = *++aptr) != NULL);
+ 			return 0;
+ 		}

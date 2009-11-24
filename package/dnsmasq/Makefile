@@ -4,17 +4,17 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 8682 2007-09-07 20:57:08Z nbd $
+# $Id: Makefile 13708 2008-12-21 17:12:53Z nbd $
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=dnsmasq
-PKG_VERSION:=2.39
+PKG_VERSION:=2.46
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=http://thekelleys.org.uk/dnsmasq
-PKG_MD5SUM:=1ffccc1f0d9b8a08f2b99e03ba9cc08b
+PKG_MD5SUM:=79ec740d1a10ee75f13efa4ff36d0250
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -23,10 +23,6 @@ define Package/dnsmasq
   CATEGORY:=Base system
   TITLE:=A lightweight DNS and DHCP server
   URL:=http://www.thekelleys.org.uk/dnsmasq/
-endef
-
-define Package/dnsmasq/conffiles
-/etc/dnsmasq.conf
 endef
 
 define Package/dnsmasq/description
@@ -38,6 +34,7 @@ define Build/Compile
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(TARGET_CFLAGS) -DHAVE_ISC_READER=1" \
 		BINDIR="/usr/sbin" MANDIR="/usr/man" \
+		AWK="awk" \
 		all
 endef
 
@@ -46,7 +43,6 @@ define Package/dnsmasq/install
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/dnsmasq $(1)/usr/sbin/
 	$(INSTALL_DIR) $(1)/etc/config
 	$(INSTALL_DATA) ./files/dhcp.conf $(1)/etc/config/dhcp
-	$(INSTALL_DATA) ./files/dnsmasq.conf $(1)/etc/dnsmasq.conf
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/dnsmasq.init $(1)/etc/init.d/dnsmasq
 endef

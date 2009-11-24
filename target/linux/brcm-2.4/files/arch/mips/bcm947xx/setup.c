@@ -48,8 +48,8 @@
 #include <typedefs.h>
 #include <osl.h>
 #include <sbutils.h>
-#include <bcmutils.h>
 #include <bcmnvram.h>
+#include <bcmdevs.h>
 #include <sbhndmips.h>
 #include <hndmips.h>
 #include <trxhdr.h>
@@ -90,9 +90,21 @@ bcm947xx_machine_restart(char *command)
 {
 	printk("Please stand by while rebooting the system...\n");
 
+	if (sb_chip(sbh) == BCM4785_CHIP_ID)
+		MTC0(C0_BROADCOM, 4, (1 << 22));
+
 	/* Set the watchdog timer to reset immediately */
 	__cli();
 	sb_watchdog(sbh, 1);
+
+	if (sb_chip(sbh) == BCM4785_CHIP_ID) {
+		__asm__ __volatile__(
+			".set\tmips3\n\t"
+			"sync\n\t"
+			"wait\n\t"
+			".set\tmips0");
+	}
+
 	while (1);
 }
 
@@ -170,7 +182,7 @@ brcm_setup(void)
 	char *value;
 
 	/* Get global SB handle */
-	sbh = sb_kattach();
+	sbh = sb_kattach(SB_OSH);
 
 	/* Initialize clocks and interrupts */
 	sb_mips_init(sbh, SBMIPS_VIRTIRQ_BASE);

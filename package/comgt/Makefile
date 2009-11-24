@@ -4,7 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 6582 2007-03-16 20:21:39Z nbd $
+# $Id: Makefile 10347 2008-02-02 01:21:31Z nbd $
 
 include $(TOPDIR)/rules.mk
 
@@ -25,12 +25,14 @@ define Package/comgt
   CATEGORY:=Utilities
   TITLE:=Option/Vodafone 3G/GPRS control tool
   DEPENDS:=+chat
-  DESCRIPTION:=\
-	comgt is a scripting language interpreter useful for establishing communications \\\
-	on serial lines and through PCMCIA modems as well as GPRS and 3G datacards.
   URL:= http://www.pharscape.org/content/view/46/70/
 endef
 
+define Package/comgt/description
+ comgt is a scripting language interpreter useful for establishing 
+ communications on serial lines and through PCMCIA modems as well as GPRS 
+ and 3G datacards.
+endef
 
 define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR) \
@@ -46,6 +48,7 @@ define Package/comgt/install
 	$(INSTALL_BIN) ./files/3g.connect $(1)/etc/ppp/3g.connect
 	$(INSTALL_DIR) $(1)/etc/chatscripts
 	$(INSTALL_DATA) ./files/3g.chat $(1)/etc/chatscripts/3g.chat
+	$(INSTALL_DATA) ./files/evdo.chat $(1)/etc/chatscripts/evdo.chat
 	$(INSTALL_DIR) $(1)/lib/network
 	$(INSTALL_DATA) ./files/3g.sh $(1)/lib/network/3g.sh
 	$(INSTALL_DIR) $(1)/etc/hotplug.d/button
@@ -60,4 +63,3 @@ define Package/comgt/install
 endef
 
 $(eval $(call BuildPackage,comgt))
-

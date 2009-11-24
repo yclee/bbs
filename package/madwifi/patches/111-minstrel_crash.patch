@@ -1,8 +1,6 @@
-Index: madwifi-ng-r2568-20070710/ath_rate/minstrel/minstrel.c
-===================================================================
---- madwifi-ng-r2568-20070710.orig/ath_rate/minstrel/minstrel.c	2007-07-23 01:48:38.542176563 +0200
-+++ madwifi-ng-r2568-20070710/ath_rate/minstrel/minstrel.c	2007-07-23 01:48:40.974315165 +0200
-@@ -388,6 +388,9 @@
+--- a/ath_rate/minstrel/minstrel.c
++++ b/ath_rate/minstrel/minstrel.c
+@@ -393,6 +393,9 @@ ath_rate_get_mrr(struct ath_softc *sc, s
  		struct minstrel_node *sn = ATH_NODE_MINSTREL(an);
  		int rc1, rc2, rc3;         /* Index into the rate table, so for example, it is  0..11 */
  
@@ -10,5 +8,5 @@ Index: madwifi-ng-r2568-20070710/ath_rate/minstrel/minstrel.c
 +			return;
 +
  		if (sn->is_sampling) {
- 			rc1 = sn->max_tp_rate;
  			sn->is_sampling = 0;
+ 			if (sn->rs_sample_rate_slower)

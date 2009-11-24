@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2006 Mike Baker <mbm@openwrt.org>,
  * Copyright (C) 2006-2007 Felix Fietkau <nbd@openwrt.org>
+ * Copyright (C) 2008 Andy Boyett <agb@openwrt.org>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  *
- * $Id: diag.c 8682 2007-09-07 20:57:08Z nbd $
+ * $Id: diag.c 12855 2008-10-04 16:51:03Z florian $
  */
 #include <linux/module.h>
 #include <linux/pci.h>
@@ -46,6 +47,7 @@ extern u64 uevent_next_seqnum(void);
 #include "diag.h"
 #define getvar(str) (nvram_get(str)?:"")
 
+static inline int startswith (char *source, char *cmp) { return !strncmp(source,cmp,strlen(cmp)); }
 static int fill_event(struct event_t *);
 static unsigned int gpiomask = 0;
 module_param(gpiomask, int, 0644);
@@ -59,21 +61,28 @@ enum {
 	WRTSL54GS,
 	WRT54G3G,
 	WRT350N,
-	
+	WRT600N,
+	WRT600NV11,
+
 	/* ASUS */
 	WLHDD,
 	WL300G,
+	WL320GE,
 	WL500G,
 	WL500GD,
 	WL500GP,
+	WL500GPV2,
 	WL500W,
+	WL520GC,
+	WL520GU,
 	ASUS_4702,
 	WL700GE,
-	
+
 	/* Buffalo */
 	WBR2_G54,
 	WHR_G54S,
 	WHR_HP_G54,
+	WHR_G125,
 	WHR2_A54G54,
 	WLA2_G54L,
 	WZR_G300N,
@@ -85,12 +94,13 @@ enum {
 	/* Siemens */
 	SE505V1,
 	SE505V2,
-	
+
 	/* US Robotics */
 	USR5461,
 
 	/* Dell */
 	TM2300,
+	TM2300V2,
 
 	/* Motorola */
 	WE800G,
@@ -106,7 +116,7 @@ enum {
 
 	/* Trendware */
 	TEW411BRPP,
-	
+
 	/* SimpleTech */
 	STI_NAS,
 
@@ -114,6 +124,9 @@ enum {
 	DIR130,
 	DIR330,
 	DWL3150,
+
+	/* Sitecom */
+	WL105B,
 };
 
 static void __init bcm4780_init(void) {
@@ -130,6 +143,17 @@ static void __init bcm4780_init(void) {
 		schedule_timeout(HZ * 5);
 }
 
+static void __init bcm57xx_init(void) {
+	int pin = 1 << 2;
+
+#ifndef LINUX_2_4
+	/* FIXME: switch comes up, but port mappings/vlans not right */
+	gpio_outen(pin, pin);
+	gpio_control(pin, 0);
+	gpio_out(pin, pin);
+#endif
+}
+
 static struct platform_t __initdata platforms[] = {
 	/* Linksys */
 	[WAP54GV1] = {
@@ -137,7 +161,7 @@ static struct platform_t __initdata platforms[] = {
 		.buttons	= {
 			{ .name = "reset",	.gpio = 1 << 0 },
 		},
-		.leds		= { 
+		.leds		= {
 			{ .name = "diag",	.gpio = 1 << 3 },
 			{ .name = "wlan",	.gpio = 1 << 4 },
 		},
@@ -149,7 +173,7 @@ static struct platform_t __initdata platforms[] = {
 			{ .name = "reset",	.gpio = 1 << 7 },
 			{ .name = "ses",	.gpio = 1 << 0 },
 		},
-		.leds		= { 
+		.leds		= {
 			/* FIXME: diag? */
 			{ .name = "ses",	.gpio = 1 << 1 },
 		},
@@ -159,7 +183,7 @@ static struct platform_t __initdata platforms[] = {
 		.buttons	= {
 			{ .name = "reset",	.gpio = 1 << 6 },
 		},
-		.leds		= { 
+		.leds		= {
 			{ .name = "diag",	.gpio = 0x13 | GPIO_TYPE_EXTIF, .polarity = NORMAL },
 			{ .name = "dmz",	.gpio = 0x12 | GPIO_TYPE_EXTIF, .polarity = NORMAL },
 		},
@@ -213,8 +237,44 @@ static struct platform_t __initdata platforms[] = {
 		},
 		.leds		= {
 			{ .name = "power",	.gpio = 1 << 1, .polarity = NORMAL },
-			{ .name = "ses",	.gpio = 1 << 3, .polarity = REVERSE },
+			{ .name = "ses_amber",	.gpio = 1 << 3, .polarity = REVERSE },
+			{ .name = "ses_green",	.gpio = 1 << 9, .polarity = REVERSE },
+			{ .name = "usb_blink",	.gpio = 1 << 10, .polarity = REVERSE },
+			{ .name = "usb",	.gpio = 1 << 11, .polarity = REVERSE },
 		},
+		.platform_init = bcm57xx_init,
+	},
+	[WRT600N] = {
+		.name           = "Linksys WRT600N",
+		.buttons        = {
+			{ .name = "reset",      .gpio = 1 << 6 },
+			{ .name = "ses",        .gpio = 1 << 7 },
+		},
+		.leds           = {
+			{ .name = "power",              .gpio = 1 << 2,  .polarity = REVERSE }, // Power LED
+			{ .name = "usb",                .gpio = 1 << 3,  .polarity = REVERSE }, // USB LED
+			{ .name = "wl0_ses_amber",      .gpio = 1 << 8,  .polarity = REVERSE }, // 2.4Ghz LED Amber
+			{ .name = "wl0_ses_green",      .gpio = 1 << 9,  .polarity = REVERSE }, // 2.4Ghz LED Green
+			{ .name = "wl1_ses_amber",      .gpio = 1 << 10, .polarity = REVERSE }, // 5.6Ghz LED Amber
+			{ .name = "wl1_ses_green",      .gpio = 1 << 11, .polarity = REVERSE }, // 5.6Ghz LED Green
+		},
+		.platform_init = bcm57xx_init,
+	},
+	[WRT600NV11] = {
+		.name           = "Linksys WRT600N V1.1",
+		.buttons        = {
+			{ .name = "reset",      .gpio = 1 << 6 },
+			{ .name = "ses",        .gpio = 1 << 7 },
+		},
+		.leds           = {
+			{ .name = "power",             .gpio = 1 << 2,  .polarity = REVERSE }, // Power LED
+			{ .name = "usb",                .gpio = 1 << 3,  .polarity = REVERSE }, // USB LED
+			{ .name = "wl0_ses_amber",      .gpio = 1 << 8,  .polarity = REVERSE }, // 2.4Ghz LED Amber
+			{ .name = "wl0_ses_green",     .gpio = 1 << 9,  .polarity = REVERSE }, // 2.4Ghz LED Green
+			{ .name = "wl1_ses_amber",      .gpio = 1 << 10, .polarity = REVERSE }, // 5.6Ghz LED Amber
+			{ .name = "wl1_ses_green",      .gpio = 1 << 11, .polarity = REVERSE }, // 5.6Ghz LED Green
+		},
+		.platform_init = bcm57xx_init,
 	},
 	/* Asus */
 	[WLHDD] = {
@@ -234,6 +294,17 @@ static struct platform_t __initdata platforms[] = {
 		},
 		.leds		= {
 			{ .name = "power",	.gpio = 1 << 0, .polarity = REVERSE },
+		},
+	},
+	[WL320GE] = {
+		.name		= "ASUS WL-320gE/WL-320gP",
+		.buttons	= {
+			{ .name = "reset",	.gpio = 1 << 6 },
+		},
+		.leds		= {
+			{ .name = "wlan",	.gpio = 1 << 0, .polarity = REVERSE },
+			{ .name = "power",	.gpio = 1 << 2, .polarity = REVERSE },
+			{ .name = "link",	.gpio = 1 << 11, .polarity = REVERSE },
 		},
 	},
 	[WL500G] = {
@@ -264,6 +335,17 @@ static struct platform_t __initdata platforms[] = {
 			{ .name = "power",	.gpio = 1 << 1, .polarity = REVERSE },
 		},
 	},
+	[WL500GPV2] = {
+		.name		= "ASUS WL-500g Premium V2",
+		.buttons	= {
+			{ .name = "reset",	.gpio = 1 << 2 },
+			{ .name = "ses",	.gpio = 1 << 3 },
+		},
+		.leds		= {
+			{ .name = "power",	.gpio = 1 << 0, .polarity = REVERSE },
+			{ .name = "wlan",	.gpio = 1 << 1, .polarity = REVERSE },
+		},
+	},
 	[WL500W] = {
 		.name		= "ASUS WL-500W",
 		.buttons	= {
@@ -272,6 +354,28 @@ static struct platform_t __initdata platforms[] = {
 		},
 		.leds		= {
 			{ .name = "power",	.gpio = 1 << 5, .polarity = REVERSE },
+		},
+	},
+	[WL520GC] = {
+		.name		= "ASUS WL-520GC",
+		.buttons	= {
+			{ .name = "reset",	.gpio = 1 << 2 },
+			{ .name = "ses",	.gpio = 1 << 3 },
+		},
+		.leds		= {
+		{ .name = "power",	.gpio = 1 << 0, .polarity = REVERSE },
+			{ .name = "wlan",	.gpio = 1 << 1, .polarity = REVERSE },
+		},
+	},
+	[WL520GU] = {
+		.name		= "ASUS WL-520gU",
+		.buttons	= {
+			{ .name = "reset",	.gpio = 1 << 2 },
+			{ .name = "ses",	.gpio = 1 << 3 },
+		},
+		.leds		= {
+			{ .name = "power",	.gpio = 1 << 0, .polarity = REVERSE },
+			{ .name = "wlan",	.gpio = 1 << 1, .polarity = REVERSE },
 		},
 	},
 	[ASUS_4702] = {
@@ -330,6 +434,21 @@ static struct platform_t __initdata platforms[] = {
 	},
 	[WHR_HP_G54] = {
 		.name		= "Buffalo WHR-HP-G54",
+		.buttons	= {
+			{ .name = "reset",	.gpio = 1 << 4 },
+			{ .name = "bridge",	.gpio = 1 << 5 },
+			{ .name = "ses",	.gpio = 1 << 0 },
+		},
+		.leds		= {
+			{ .name = "diag",	.gpio = 1 << 7, .polarity = REVERSE },
+			{ .name = "internal",	.gpio = 1 << 3, .polarity = REVERSE },
+			{ .name = "bridge",	.gpio = 1 << 1, .polarity = REVERSE },
+			{ .name = "ses",	.gpio = 1 << 6, .polarity = REVERSE },
+			{ .name = "wlan",	.gpio = 1 << 2, .polarity = REVERSE },
+		},
+	},
+	[WHR_G125] = {
+		.name		= "Buffalo WHR-G125",
 		.buttons	= {
 			{ .name = "reset",	.gpio = 1 << 4 },
 			{ .name = "bridge",	.gpio = 1 << 5 },
@@ -422,7 +541,8 @@ static struct platform_t __initdata platforms[] = {
 			/* No usable buttons */
 		},
 		.leds		= {
-			{ .name = "dmz",	.gpio = 1 << 4, .polarity = REVERSE },
+//			{ .name = "power",	.gpio = 1 << 0  .polarity = REVERSE },	// Usable when retrofitting D26 (?)
+			{ .name = "dmz",	.gpio = 1 << 4, .polarity = REVERSE },	// actual name WWW
 			{ .name = "wlan",	.gpio = 1 << 3, .polarity = REVERSE },
 		},
 	},
@@ -433,7 +553,7 @@ static struct platform_t __initdata platforms[] = {
 		},
 		.leds		= {
 			{ .name = "power",	.gpio = 1 << 5, .polarity = REVERSE },
-			{ .name = "dmz",	.gpio = 1 << 0, .polarity = REVERSE },
+			{ .name = "dmz",	.gpio = 1 << 0, .polarity = REVERSE },	// actual name WWW
 			{ .name = "wlan",	.gpio = 1 << 3, .polarity = REVERSE },
 		},
 	},
@@ -451,6 +571,16 @@ static struct platform_t __initdata platforms[] = {
 	/* Dell */
 	[TM2300] = {
 		.name		= "Dell TrueMobile 2300",
+		.buttons	= {
+			{ .name = "reset",	.gpio = 1 << 0 },
+		},
+		.leds		= {
+			{ .name = "wlan",	.gpio = 1 << 6, .polarity = REVERSE },
+			{ .name = "power",	.gpio = 1 << 7, .polarity = REVERSE },
+		},
+	},
+	[TM2300V2] = {
+		.name		= "Dell TrueMobile 2300 v2",
 		.buttons	= {
 			{ .name = "reset",	.gpio = 1 << 0 },
 		},
@@ -564,7 +694,7 @@ static struct platform_t __initdata platforms[] = {
 			{ .name = "reserved",	.gpio = 1 << 7},
 		},
 		.leds	   = {
-			{ .name = "diag", 	.gpio = 1 << 0},
+			{ .name = "diag",	.gpio = 1 << 0},
 			{ .name = "blue",	.gpio = 1 << 6},
 		},
 	},
@@ -575,8 +705,8 @@ static struct platform_t __initdata platforms[] = {
 			{ .name = "reserved",	.gpio = 1 << 7},
 		},
 		.leds	   = {
-			{ .name = "diag", 	.gpio = 1 << 0},
-			{ .name = "usb", 	.gpio = 1 << 4},
+			{ .name = "diag",	.gpio = 1 << 0},
+			{ .name = "usb",	.gpio = 1 << 4},
 			{ .name = "blue",	.gpio = 1 << 6},
 		},
 	},
@@ -588,6 +718,17 @@ static struct platform_t __initdata platforms[] = {
 		.leds	  = {
 			{ .name = "diag",	.gpio = 1 << 2},
 			{ .name = "status",	.gpio = 1 << 1},
+		},
+	},
+	/* Double check */
+	[WL105B] = {
+		.name	= "Sitecom WL-105b",
+		.buttons	= {
+			{ .name = "reset",	.gpio = 1 << 10},
+		},
+		.leds	  = {
+			{ .name = "wlan",	.gpio = 1 << 4},
+			{ .name = "power",	.gpio = 1 << 3},
 		},
 	},
 };
@@ -602,7 +743,7 @@ static struct platform_t __init *platform_detect(void)
 	/* Look for a model identifier */
 
 	/* Based on "model_name" */
-	if (buf = nvram_get("model_name")) {
+	if ((buf = nvram_get("model_name"))) {
 		if (!strcmp(buf, "DIR-130"))
 			return &platforms[DIR130];
 		if (!strcmp(buf, "DIR-330"))
@@ -610,18 +751,28 @@ static struct platform_t __init *platform_detect(void)
 	}
 
 	/* Based on "model_no" */
-	if (buf = nvram_get("model_no")) {
-		if (!strncmp(buf,"WL700", 5)) /* WL700* */
+	if ((buf = nvram_get("model_no"))) {
+		if (startswith(buf,"WL700")) /* WL700* */
 			return &platforms[WL700GE];
 	}
 
+	/* Based on "hardware_version" */
+	if ((buf = nvram_get("hardware_version"))) {
+		if (startswith(buf,"WL500GPV2-")) /* WL500GPV2-* */
+			return &platforms[WL500GPV2];
+		if (startswith(buf,"WL520GC-")) /* WL520GU-* */
+			return &platforms[WL520GC];
+		if (startswith(buf,"WL520GU-")) /* WL520GU-* */
+			return &platforms[WL520GU];
+	}
+
 	/* Based on "ModelId" */
-	if (buf = nvram_get("ModelId")) {
+	if ((buf = nvram_get("ModelId"))) {
 		if (!strcmp(buf, "WR850GP"))
 			return &platforms[WR850GP];
-		if (!strcmp(buf,"WX-5565"))
-			return &platforms[TM2300];
-		if (!strncmp(buf,"WE800G", 6)) /* WE800G* */
+		if (!strcmp(buf, "WX-5565") && !strcmp(getvar("boardtype"),"bcm94710ap"))
+			return &platforms[TM2300]; /* Dell TrueMobile 2300 */
+		if (startswith(buf,"WE800G")) /* WE800G* */
 			return &platforms[WE800G];
 	}
 
@@ -634,6 +785,8 @@ static struct platform_t __init *platform_detect(void)
 			return &platforms[WLA2_G54L];
 		if (!strcmp(buf, "30189"))
 			return &platforms[WHR_HP_G54];
+		if (!strcmp(buf, "32093"))
+			return &platforms[WHR_G125];
 		if (!strcmp(buf, "30182"))
 			return &platforms[WHR_G54S];
 		if (!strcmp(buf, "290441dd"))
@@ -650,7 +803,15 @@ static struct platform_t __init *platform_detect(void)
 	boardnum = getvar("boardnum");
 	boardtype = getvar("boardtype");
 
-	if (strncmp(getvar("pmon_ver"), "CFE", 3) == 0) {
+	if (!strcmp(boardnum, "20070615")) { /* Linksys WRT600N  v1/V1.1 */
+		if (!strcmp(boardtype, "0x478") && !strcmp(getvar("cardbus"), "0") && !strcmp(getvar("switch_type"),"BCM5395"))
+			return &platforms[WRT600NV11];
+
+	if (!strcmp(boardtype, "0x478") && !strcmp(getvar("cardbus"), "0"))
+			return &platforms[WRT600N];
+	}
+
+	if (startswith(getvar("pmon_ver"), "CFE")) {
 		/* CFE based - newer hardware */
 		if (!strcmp(boardnum, "42")) { /* Linksys */
 			if (!strcmp(boardtype, "0x478") && !strcmp(getvar("cardbus"), "1"))
@@ -661,37 +822,47 @@ static struct platform_t __init *platform_detect(void)
 
 			if (!strcmp(getvar("et1phyaddr"),"5") && !strcmp(getvar("et1mdcport"), "1"))
 				return &platforms[WRTSL54GS];
-			
+
 			/* default to WRT54G */
 			return &platforms[WRT54G];
 		}
-		
+
+		if (!strcmp(boardnum, "44") || !strcmp(boardnum, "44\r")) {
+			if (!strcmp(boardtype,"0x0101") || !strcmp(boardtype, "0x0101\r"))
+				return &platforms[TM2300V2]; /* Dell TrueMobile 2300 v2 */
+		}
+
 		if (!strcmp(boardnum, "45")) { /* ASUS */
 			if (!strcmp(boardtype,"0x042f"))
 				return &platforms[WL500GP];
 			else if (!strcmp(boardtype,"0x0472"))
 				return &platforms[WL500W];
+			else if (!strcmp(boardtype,"0x467"))
+				return &platforms[WL320GE];
 			else
 				return &platforms[WL500GD];
 		}
-		
+
 		if (!strcmp(boardnum, "10496"))
 			return &platforms[USR5461];
+
+		if (!strcmp(getvar("boardtype"), "0x0101") && !strcmp(getvar("boardrev"), "0x10")) /* SE505V2 With Modified CFE */
+			return &platforms[SE505V2];
 
 	} else { /* PMON based - old stuff */
 		if ((simple_strtoul(getvar("GemtekPmonVer"), NULL, 0) == 9) &&
 			(simple_strtoul(getvar("et0phyaddr"), NULL, 0) == 30)) {
 			return &platforms[WR850GV1];
 		}
-		if (!strncmp(boardtype, "bcm94710dev", 11)) {
+		if (startswith(boardtype, "bcm94710dev")) {
 			if (!strcmp(boardnum, "42"))
 				return &platforms[WRT54GV1];
 			if (simple_strtoul(boardnum, NULL, 0) == 2)
 				return &platforms[WAP54GV1];
 		}
-		if (!strncmp(getvar("hardware_version"), "WL500-", 6))
+		if (startswith(getvar("hardware_version"), "WL500-"))
 			return &platforms[WL500G];
-		if (!strncmp(getvar("hardware_version"), "WL300-", 6)) {
+		if (startswith(getvar("hardware_version"), "WL300-")) {
 			/* Either WL-300g or WL-HDD, do more extensive checks */
 			if ((simple_strtoul(getvar("et0phyaddr"), NULL, 0) == 0) &&
 				(simple_strtoul(getvar("et1phyaddr"), NULL, 0) == 1))
@@ -700,30 +871,34 @@ static struct platform_t __init *platform_detect(void)
 				(simple_strtoul(getvar("et1phyaddr"), NULL, 0) == 10))
 				return &platforms[WL300G];
 		}
+		/* Sitecom WL-105b */
+		if (startswith(boardnum, "2") && simple_strtoul(getvar("GemtekPmonVer"), NULL, 0) == 1)
+			return &platforms[WL105B];
 
 		/* unknown asus stuff, probably bcm4702 */
-		if (!strncmp(boardnum, "asusX", 5))
+		if (startswith(boardnum, "asusX"))
 			return &platforms[ASUS_4702];
 	}
 
 	if (buf || !strcmp(boardnum, "00")) {/* probably buffalo */
-		if (!strncmp(boardtype, "bcm94710ap", 10))
+		if (startswith(boardtype, "bcm94710ap"))
 			return &platforms[BUFFALO_UNKNOWN_4710];
 		else
 			return &platforms[BUFFALO_UNKNOWN];
 	}
 
-	if (!strcmp(getvar("CFEver"), "MotoWRv203") ||
+	if (startswith(getvar("CFEver"), "MotoWRv2") ||
+		startswith(getvar("CFEver"), "MotoWRv3") ||
 		!strcmp(getvar("MOTO_BOARD_TYPE"), "WR_FEM1")) {
 
 		return &platforms[WR850GV2V3];
 	}
 
-	if (!strcmp(boardnum, "44")) {  /* Trendware TEW-411BRP+ */
+	if (!strcmp(boardnum, "44") && !strcmp(getvar("boardflags"),"0x0388")) {  /* Trendware TEW-411BRP+ */
 		return &platforms[TEW411BRPP];
 	}
 
-	if (!strncmp(boardnum, "04FN52", 6)) /* SimpleTech SimpleShare */
+	if (startswith(boardnum, "04FN52")) /* SimpleTech SimpleShare */
 		return &platforms[STI_NAS];
 
 	if (!strcmp(getvar("boardnum"), "10") && !strcmp(getvar("boardrev"), "0x13")) /* D-Link DWL-3150 */
@@ -865,7 +1040,7 @@ static irqreturn_t button_handler(int irq, void *dev_id, struct pt_regs *regs)
 
 	changed &= ~gpio_outen(0, 0);
 
-	for (b = platform.buttons; b->name; b++) { 
+	for (b = platform.buttons; b->name; b++) {
 		struct event_t *event;
 
 		if (!(b->gpio & changed)) continue;
@@ -897,18 +1072,18 @@ static void register_leds(struct led_t *l)
 	u32 val = 0;
 
 	leds = proc_mkdir("led", diag);
-	if (!leds) 
+	if (!leds)
 		return;
 
 	for(; l->name; l++) {
 		if (l->gpio & gpiomask)
 			continue;
-	
+
 		if (l->gpio & GPIO_TYPE_EXTIF) {
 			l->state = 0;
 			set_led_extif(l);
 		} else {
-			if (l->polarity != INPUT) oe_mask != l->gpio;
+			if (l->polarity != INPUT) oe_mask |= l->gpio;
 			mask |= l->gpio;
 			val |= (l->polarity == NORMAL)?0:l->gpio;
 		}
@@ -926,6 +1101,7 @@ static void register_leds(struct led_t *l)
 	gpio_outen(mask, oe_mask);
 	gpio_control(mask, 0);
 	gpio_out(mask, val);
+	gpio_intmask(mask, 0);
 }
 
 static void unregister_leds(struct led_t *l)
@@ -981,10 +1157,10 @@ static ssize_t diag_proc_read(struct file *file, char *buf, size_t count, loff_t
 #endif
 	char *page;
 	int len = 0;
-	
+
 	if ((page = kmalloc(1024, GFP_KERNEL)) == NULL)
 		return -ENOBUFS;
-	
+
 	if (dent->data != NULL) {
 		struct prochandler_t *handler = (struct prochandler_t *) dent->data;
 		switch (handler->type) {
@@ -1048,14 +1224,14 @@ static ssize_t diag_proc_write(struct file *file, const char *buf, size_t count,
 		return -EINVAL;
 	}
 	page[count] = 0;
-	
+
 	if (dent->data != NULL) {
 		struct prochandler_t *handler = (struct prochandler_t *) dent->data;
 		switch (handler->type) {
 			case PROC_LED: {
 				struct led_t *led = (struct led_t *) handler->ptr;
 				int p = (led->polarity == NORMAL ? 0 : 1);
-				
+
 				if (page[0] == 'f') {
 					led->flash = 1;
 					led_flash(0);

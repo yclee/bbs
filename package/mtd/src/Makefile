@@ -1,12 +1,10 @@
-# $Id$
+CC = gcc
+CFLAGS += -Wall
 
-all: mtd
+obj = mtd.o jffs2.o crc32.o
+obj.brcm = trx.o
+obj.brcm47xx = $(obj.brcm)
 
-%.o: %.c
-	$(CC) -I. $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $^
-
-mtd: mtd.o
-	$(CC) -o $@ $^
-
+mtd: $(obj) $(obj.$(TARGET))
 clean:
-	rm -f *.o mtd
+	rm -f *.o jffs2 

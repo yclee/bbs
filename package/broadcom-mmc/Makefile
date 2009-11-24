@@ -13,8 +13,6 @@ PKG_NAME:=broadcom-mmc
 PKG_VERSION:=0.1
 PKG_RELEASE:=1
 
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
-
 include $(INCLUDE_DIR)/package.mk
 
 MAKEFLAGS_KMOD:= -C "$(LINUX_DIR)" \
@@ -25,15 +23,16 @@ MAKEFLAGS_KMOD:= -C "$(LINUX_DIR)" \
 
 define KernelPackage/broadcom-mmc
   SUBMENU:=Other modules
-  DEPENDS:=@LINUX_2_4_BRCM
+  DEPENDS:=@TARGET_brcm_2_4
   TITLE:=Kernel driver for the Linksys WRT54G MM/SD-Card Mod
-  DESCRIPTION:=\
-	Kernel driver for the Linksys WRT54G MM/SD-Card Mod
   URL:=http://kiel.kool.dk/
   FILES:=$(PKG_BUILD_DIR)/mmc.$(LINUX_KMOD_SUFFIX)
-  VERSION:=$(LINUX_VERSION)+$(PKG_VERSION)-$(PKG_RELEASE)
   AUTOLOAD:=$(call AutoLoad,80,mmc)
 endef 
+
+define KernelPackage/broadcom-mmc/description
+	Kernel driver for the Linksys WRT54G MM/SD-Card Mod
+endef
 
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)

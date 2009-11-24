@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 # 
 # Copyright (C) 2006 OpenWrt.org
 #
@@ -10,19 +10,18 @@ use strict;
 use warnings;
 use File::Basename;
 
+@ARGV > 2 or die "Syntax: $0 <target dir> <filename> <md5sum> [<mirror> ...]\n";
+
 my $target = shift @ARGV;
 my $filename = shift @ARGV;
 my $md5sum = shift @ARGV;
 my $scriptdir = dirname($0);
 my @mirrors;
-
 my $ok;
 
-@ARGV > 0 or die "Syntax: $0 <target dir> <filename> <md5sum> <mirror> [<mirror> ...]\n";
-
 sub localmirrors {
-    my @mlist;
-    open LM, "$scriptdir/localmirrors" and do {
+	my @mlist;
+	open LM, "$scriptdir/localmirrors" and do {
 	    while (<LM>) {
 			chomp $_;
 			push @mlist, $_;
@@ -38,9 +37,8 @@ sub localmirrors {
 		}
 		close CONFIG;
 	};
-	
 
-    return @mlist;
+	return @mlist;
 }
 
 sub which($) {
@@ -62,36 +60,45 @@ sub download
 	my $mirror = shift;
 	my $options = $ENV{WGET_OPTIONS};
 	$options or $options = "";
-	
+
 	$mirror =~ s/\/$//;
-	open WGET, "wget -t1 --timeout=20 $options -O- \"$mirror/$filename\" |" or die "Cannot launch wget.\n";
-	open MD5SUM, "| $md5cmd > \"$target/$filename.md5sum\"" or die "Cannot launch md5sum.\n";
-	open OUTPUT, "> $target/$filename.dl" or die "Cannot create file $target/$filename.dl: $!\n";
-	my $buffer;
-	while (read WGET, $buffer, 1048576) {
-		print MD5SUM $buffer;
-		print OUTPUT $buffer;
+	if( $mirror =~ /^file:\/\// ) {
+		my $cache = $mirror;
+		$cache =~ s/file:\/\///g;
+		print "Checking local cache: $cache\n";
+		system("mkdir -p $target/");
+		system("cp -f $cache/$filename $target/$filename.dl") == 0 or return;
+		system("$md5cmd $target/$filename.dl > \"$target/$filename.md5sum\" ") == 0 or return;
+	} else {
+		open WGET, "wget -t5 --timeout=20 $options -O- \"$mirror/$filename\" |" or die "Cannot launch wget.\n";
+		open MD5SUM, "| $md5cmd > \"$target/$filename.md5sum\"" or die "Cannot launch md5sum.\n";
+		open OUTPUT, "> $target/$filename.dl" or die "Cannot create file $target/$filename.dl: $!\n";
+		my $buffer;
+		while (read WGET, $buffer, 1048576) {
+			print MD5SUM $buffer;
+			print OUTPUT $buffer;
+		}
+		close MD5SUM;
+		close WGET;
+		close OUTPUT;
+
+		if (($? >> 8) != 0 ) {
+			print STDERR "Download failed.\n";
+			cleanup();
+			return;
+		}
 	}
-	close MD5SUM;
-	close WGET;
-	close OUTPUT;
-	
-	if (($? >> 8) != 0 ) {
-		print STDERR "Download failed.\n";
-		cleanup();
-		return;
-	}
-	
+
 	my $sum = `cat "$target/$filename.md5sum"`;
 	$sum =~ /^(\w+)\s*/ or die "Could not generate md5sum\n";
 	$sum = $1;
-	
+
 	if (($md5sum =~ /\w{32}/) and ($sum ne $md5sum)) {
-		print STDERR "MD5 sum of the downloaded file does not match - deleting download.\n";
+		print STDERR "MD5 sum of the downloaded file does not match (file: $sum, requested: $md5sum) - deleting download.\n";
 		cleanup();
 		return;
 	}
-	
+
 	unlink "$target/$filename";
 	system("mv \"$target/$filename.dl\" \"$target/$filename\"");
 	cleanup();
@@ -121,15 +128,27 @@ foreach my $mirror (@ARGV) {
 		push @mirrors, "ftp://ftp.leo.org/pub/comp/os/unix/gnu/$1";
 		push @mirrors, "ftp://ftp.digex.net/pub/gnu/$1";
 	} elsif ($mirror =~ /^\@KERNEL\/(.+)$/) {
-		push @mirrors, "ftp://ftp.us.kernel.org/pub/$1";
-		push @mirrors, "http://ftp.us.kernel.org/pub/$1";
-		push @mirrors, "ftp://ftp.kernel.org/pub/$1";
-		push @mirrors, "http://ftp.kernel.org/pub/$1";
+		push @mirrors, "ftp://ftp.all.kernel.org/pub/$1";
+		push @mirrors, "http://ftp.all.kernel.org/pub/$1";
 		push @mirrors, "ftp://ftp.de.kernel.org/pub/$1";
 		push @mirrors, "http://ftp.de.kernel.org/pub/$1";
 		push @mirrors, "ftp://ftp.fr.kernel.org/pub/$1";
 		push @mirrors, "http://ftp.fr.kernel.org/pub/$1";
-	} else {
+    } elsif ($mirror =~ /^\@GNOME\/(.+)$/) {
+		push @mirrors, "http://ftp.gnome.org/pub/GNOME/sources/$1";
+		push @mirrors, "http://ftp.unina.it/pub/linux/GNOME/sources/$1";
+		push @mirrors, "http://fr2.rpmfind.net/linux/gnome.org/sources/$1";
+		push @mirrors, "ftp://ftp.dit.upm.es/pub/GNOME/sources/$1";
+		push @mirrors, "ftp://ftp.no.gnome.org/pub/GNOME/sources/$1";
+		push @mirrors, "http://ftp.acc.umu.se/pub/GNOME/sources/$1";
+		push @mirrors, "http://ftp.belnet.be/mirror/ftp.gnome.org/sources/$1";
+		push @mirrors, "http://linorg.usp.br/gnome/sources/$1";
+		push @mirrors, "http://mirror.aarnet.edu.au/pub/GNOME/sources/$1";
+		push @mirrors, "http://mirrors.ibiblio.org/pub/mirrors/gnome/sources/$1";
+		push @mirrors, "ftp://ftp.cse.buffalo.edu/pub/Gnome/sources/$1";
+		push @mirrors, "ftp://ftp.nara.wide.ad.jp/pub/X11/GNOME/sources/$1";
+    }
+    else {
 		push @mirrors, $mirror;
 	}
 }
@@ -141,7 +160,7 @@ push @mirrors, 'http://downloads.openwrt.org/sources';
 while (!$ok) {
 	my $mirror = shift @mirrors;
 	$mirror or die "No more mirrors to try - giving up.\n";
-	
+
 	download($mirror);
 	-f "$target/$filename" and $ok = 1;
 }

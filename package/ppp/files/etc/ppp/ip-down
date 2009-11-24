@@ -1,4 +1,5 @@
 #!/bin/sh
+. /etc/functions.sh
 PPP_IFACE="$1"
 PPP_TTY="$2"
 PPP_SPEED="$3"
@@ -10,9 +11,7 @@ export PPP_IFACE PPP_TTY PPP_SPEED PPP_LOCAL PPP_REMOTE PPP_IPPARAM
 	env -i ACTION="ifdown" INTERFACE="$PPP_IPPARAM" DEVICE="$PPP_IFACE" PROTO=ppp /sbin/hotplug-call "iface"
 
 	# remove the interface's network state
-	FILE=/var/state/network.$$
-	grep -v "^config_set '$PPP_IPPARAM' " /var/state/network > "$FILE"
-	mv "$FILE" /var/state/network
+	uci_revert_state network "$PPP_IPPARAM"
 }
 
 [ -d /etc/ppp/ip-down.d ] && {

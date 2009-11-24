@@ -1,27 +1,27 @@
 # 
-# Copyright (C) 2006 OpenWrt.org
+# Copyright (C) 2007 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 7740 2007-06-27 00:45:05Z florian $
+# $Id: Makefile 9382 2007-10-20 20:03:52Z nbd $
 #
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=ipset
-PKG_VERSION:=2.2.9a
+PKG_VERSION:=2.3.0
 PKG_RELEASE:=1
 
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-20061009.tar.bz2
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-20070828.tar.bz2
 PKG_SOURCE_URL:=http://ipset.netfilter.org
-PKG_MD5SUM:=74ce3226b30cdd386630250bdc3488ef
+PKG_MD5SUM:=9e17798dfd8ed87c63a1f3498f9fe64d
 
 include $(INCLUDE_DIR)/package.mk
 
 define Package/ipset
   SECTION:=net
   CATEGORY:=Network
-  DEPENDS:=@BROKEN
+  DEPENDS:=@!TARGET_etrax @LINUX_2_6
   TITLE:=Netfilter ip sets administration utility
   URL:=http://ipset.netfilter.org/
 endef

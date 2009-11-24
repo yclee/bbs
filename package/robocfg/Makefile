@@ -4,7 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 6501 2007-03-04 04:41:46Z pavlov $
+# $Id: Makefile 8659 2007-09-07 08:34:51Z nico $
 
 include $(TOPDIR)/rules.mk
 
@@ -20,9 +20,11 @@ define Package/robocfg
   SECTION:=utils
   CATEGORY:=Utilities
   TITLE:=BCM5325E/536x switch configuration utility
-  DESCRIPTION:=\
-	This package contains an utility for configuring the Broadcom BCM5325E/536x \\\
-	based switches.
+endef
+
+define Package/robocfg/description
+ This package contains an utility for configuring the Broadcom BCM5325E/536x 
+ based switches.
 endef
 
 define Build/Prepare

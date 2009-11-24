@@ -17,7 +17,6 @@ add_insmod() {
 		reset_cb
 		include /lib/network
 		scan_interfaces
-		config_load /var/state/network
 		config_get "$1" ifname
 	)}
 } || {
@@ -70,6 +69,7 @@ parse_matching_rule() {
 			;;
 			*:layer7)
 				add_insmod ipt_layer7
+				add_insmod xt_layer7
 				append "$var" "-m layer7 --l7proto $value${pkt:+ --l7pkt}"
 			;;
 			*:ports|*:srcports|*:dstports)

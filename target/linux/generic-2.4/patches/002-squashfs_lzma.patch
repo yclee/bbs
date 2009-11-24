@@ -1,6 +1,7 @@
-diff -Nur linux-2.4.32/fs/squashfs/inode.c linux-2.4.32-owrt/fs/squashfs/inode.c
---- linux-2.4.32/fs/squashfs/inode.c	2006-03-21 13:06:10.000000000 +0100
-+++ linux-2.4.32-owrt/fs/squashfs/inode.c	2006-03-21 13:12:07.000000000 +0100
+Index: linux-2.4.35.4/fs/squashfs/inode.c
+===================================================================
+--- linux-2.4.35.4.orig/fs/squashfs/inode.c
++++ linux-2.4.35.4/fs/squashfs/inode.c
 @@ -4,6 +4,9 @@
   * Copyright (c) 2002, 2003, 2004, 2005, 2006
   * Phillip Lougher <phillip@lougher.org.uk>
@@ -40,7 +41,7 @@ diff -Nur linux-2.4.32/fs/squashfs/inode.c linux-2.4.32-owrt/fs/squashfs/inode.c
  static struct super_block *squashfs_read_super(struct super_block *, void *, int);
  static void squashfs_put_super(struct super_block *);
  static int squashfs_statfs(struct super_block *, struct statfs *);
-@@ -53,7 +71,11 @@
+@@ -53,7 +71,11 @@ static long long read_blocklist(struct i
  				int readahead_blks, char *block_list,
  				unsigned short **block_p, unsigned int *bsize);
  
@@ -52,7 +53,7 @@ diff -Nur linux-2.4.32/fs/squashfs/inode.c linux-2.4.32-owrt/fs/squashfs/inode.c
  
  static DECLARE_FSTYPE_DEV(squashfs_fs_type, "squashfs", squashfs_read_super);
  
-@@ -229,6 +251,15 @@
+@@ -229,6 +251,15 @@ SQSH_EXTERN unsigned int squashfs_read_d
  	if (compressed) {
  		int zlib_err;
  
@@ -68,7 +69,7 @@ diff -Nur linux-2.4.32/fs/squashfs/inode.c linux-2.4.32-owrt/fs/squashfs/inode.c
  		stream.next_in = c_buffer;
  		stream.avail_in = c_byte;
  		stream.next_out = buffer;
-@@ -243,6 +274,7 @@
+@@ -243,6 +274,7 @@ SQSH_EXTERN unsigned int squashfs_read_d
  			bytes = 0;
  		} else
  			bytes = stream.total_out;
@@ -76,7 +77,7 @@ diff -Nur linux-2.4.32/fs/squashfs/inode.c linux-2.4.32-owrt/fs/squashfs/inode.c
  		
  		up(&msblk->read_data_mutex);
  	}
-@@ -2004,17 +2036,21 @@
+@@ -2004,17 +2036,21 @@ static int __init init_squashfs_fs(void)
  	printk(KERN_INFO "squashfs: version 3.0 (2006/03/15) "
  		"Phillip Lougher\n");
  
@@ -98,9 +99,10 @@ diff -Nur linux-2.4.32/fs/squashfs/inode.c linux-2.4.32-owrt/fs/squashfs/inode.c
  	unregister_filesystem(&squashfs_fs_type);
  }
  
-diff -Nur linux-2.4.32/fs/squashfs/LzmaDecode.c linux-2.4.32-owrt/fs/squashfs/LzmaDecode.c
---- linux-2.4.32/fs/squashfs/LzmaDecode.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-2.4.32-owrt/fs/squashfs/LzmaDecode.c	2006-03-21 13:06:33.000000000 +0100
+Index: linux-2.4.35.4/fs/squashfs/LzmaDecode.c
+===================================================================
+--- /dev/null
++++ linux-2.4.35.4/fs/squashfs/LzmaDecode.c
 @@ -0,0 +1,663 @@
 +/*
 +  LzmaDecode.c
@@ -765,9 +767,10 @@ diff -Nur linux-2.4.32/fs/squashfs/LzmaDecode.c linux-2.4.32-owrt/fs/squashfs/Lz
 +  *outSizeProcessed = nowPos;
 +  return LZMA_RESULT_OK;
 +}
-diff -Nur linux-2.4.32/fs/squashfs/LzmaDecode.h linux-2.4.32-owrt/fs/squashfs/LzmaDecode.h
---- linux-2.4.32/fs/squashfs/LzmaDecode.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-2.4.32-owrt/fs/squashfs/LzmaDecode.h	2006-03-21 13:06:33.000000000 +0100
+Index: linux-2.4.35.4/fs/squashfs/LzmaDecode.h
+===================================================================
+--- /dev/null
++++ linux-2.4.35.4/fs/squashfs/LzmaDecode.h
 @@ -0,0 +1,100 @@
 +/* 
 +  LzmaDecode.h
@@ -869,9 +872,10 @@ diff -Nur linux-2.4.32/fs/squashfs/LzmaDecode.h linux-2.4.32-owrt/fs/squashfs/Lz
 +    UInt32 *outSizeProcessed);
 +
 +#endif
-diff -Nur linux-2.4.32/fs/squashfs/Makefile linux-2.4.32-owrt/fs/squashfs/Makefile
---- linux-2.4.32/fs/squashfs/Makefile	2006-03-21 13:06:10.000000000 +0100
-+++ linux-2.4.32-owrt/fs/squashfs/Makefile	2006-03-21 13:12:39.000000000 +0100
+Index: linux-2.4.35.4/fs/squashfs/Makefile
+===================================================================
+--- linux-2.4.35.4.orig/fs/squashfs/Makefile
++++ linux-2.4.35.4/fs/squashfs/Makefile
 @@ -4,7 +4,7 @@
  
  O_TARGET := squashfs.o

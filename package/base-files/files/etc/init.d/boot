@@ -12,9 +12,14 @@ system_config() {
 
 	config_get conloglevel "$cfg" conloglevel
 	[ -n "$conloglevel" ] && dmesg -n "$conloglevel"
+	
+	config_get timezone "$cfg" timezone 
+	[ -z "$timezone" ] && timezone=UTC
+	echo "$timezone" > /tmp/TZ
 
 	config_get log_ip "$cfg" log_ip 
-	syslogd -C16 ${log_ip:+-L -R $log_ip}
+	config_get log_size "$cfg" log_size
+	syslogd -C${log_size:-16} ${log_ip:+-L -R $log_ip}
 	klogd
 }
 
@@ -26,7 +31,7 @@ apply_uci_config() {(
 start() {
 	[ -f /proc/mounts ] || /sbin/mount_root
 	[ -f /proc/jffs2_bbc ] && echo "S" > /proc/jffs2_bbc
-	vconfig set_name_type DEV_PLUS_VID_NO_PAD
+	[ -f /proc/net/vlan/config ] && vconfig set_name_type DEV_PLUS_VID_NO_PAD
 
 	apply_uci_config
 	config_load system
@@ -36,12 +41,17 @@ start() {
 	mkdir -p /var/log
 	mkdir -p /var/lock
 	mkdir -p /var/state
+	mkdir -p /tmp/.uci
+	chmod 0700 /tmp/.uci
 	touch /var/log/wtmp
 	touch /var/log/lastlog
+	touch /tmp/resolv.conf.auto
 	ln -sf /tmp/resolv.conf.auto /tmp/resolv.conf
 	[ "$FAILSAFE" = "true" ] && touch /tmp/.failsafe
 
-	/sbin/hotplug2 --override --persistent --max-children 1 --no-coldplug &
+	killall -q hotplug2
+	[ -x /sbin/hotplug2 ] && /sbin/hotplug2 --override --persistent \
+			--max-children 1 --no-coldplug &
 
 	# the coldplugging of network interfaces needs to happen later, so we do it manually here
 	for iface in $(awk -F: '/:/ {print $1}' /proc/net/dev); do

@@ -1,7 +1,8 @@
-diff -ur linux-2.4.32/arch/mips/Makefile linux-2.4.32-openwrt/arch/mips/Makefile
---- linux-2.4.32/arch/mips/Makefile	2005-12-15 13:53:59.000000000 +0100
-+++ linux-2.4.32-openwrt/arch/mips/Makefile	2005-12-15 14:02:33.000000000 +0100
-@@ -44,10 +44,10 @@
+Index: linux-2.4.35.4/arch/mips/Makefile
+===================================================================
+--- linux-2.4.35.4.orig/arch/mips/Makefile
++++ linux-2.4.35.4/arch/mips/Makefile
+@@ -44,10 +44,10 @@ MAKEBOOT = $(MAKE) -C arch/$(ARCH)/boot
  GCCFLAGS	:= -I $(TOPDIR)/include/asm/gcc
  GCCFLAGS	+= -G 0 -mno-abicalls -fno-pic -pipe
  GCCFLAGS	+= $(call check_gcc, -finline-limit=100000,)
@@ -15,7 +16,7 @@ diff -ur linux-2.4.32/arch/mips/Makefile linux-2.4.32-openwrt/arch/mips/Makefile
  GCCFLAGS	+= -g
  ifdef CONFIG_SB1XXX_CORELIS
  GCCFLAGS	+= -mno-sched-prolog -fno-omit-frame-pointer
-@@ -69,13 +69,13 @@
+@@ -69,13 +69,13 @@ endif
  set_gccflags = $(shell \
  while :; do \
  	cpu=$(1); isa=-$(2); \
@@ -31,7 +32,7 @@ diff -ur linux-2.4.32/arch/mips/Makefile linux-2.4.32-openwrt/arch/mips/Makefile
  		$(CC) $$gcc_opt$$cpu $$isa -S -o /dev/null \
  			-xc /dev/null > /dev/null 2>&1 && \
  			break 2; \
-@@ -90,7 +90,7 @@
+@@ -90,7 +90,7 @@ else \
  fi; \
  gas_abi=-Wa,-32; gas_cpu=$$cpu; gas_isa=-Wa,$$isa; \
  while :; do \
@@ -40,7 +41,7 @@ diff -ur linux-2.4.32/arch/mips/Makefile linux-2.4.32-openwrt/arch/mips/Makefile
  		$(CC) $$gas_abi $$gas_opt$$cpu $$gas_isa -Wa,-Z -c \
  			-o /dev/null -xassembler /dev/null > /dev/null 2>&1 && \
  			break 2; \
-@@ -172,6 +172,7 @@
+@@ -172,6 +172,7 @@ endif
  endif
  
  AFLAGS		+= $(GCCFLAGS)
@@ -48,10 +49,11 @@ diff -ur linux-2.4.32/arch/mips/Makefile linux-2.4.32-openwrt/arch/mips/Makefile
  CFLAGS		+= $(GCCFLAGS)
  
  LD		+= -m $(ld-emul)
-diff -ur linux-2.4.32/Makefile linux-2.4.32-openwrt/Makefile
---- linux-2.4.32/Makefile	2005-12-15 13:53:59.000000000 +0100
-+++ linux-2.4.32-openwrt/Makefile	2005-12-15 13:59:30.000000000 +0100
-@@ -17,7 +17,7 @@
+Index: linux-2.4.35.4/Makefile
+===================================================================
+--- linux-2.4.35.4.orig/Makefile
++++ linux-2.4.35.4/Makefile
+@@ -17,7 +17,7 @@ HPATH   	= $(TOPDIR)/include
  FINDHPATH	= $(HPATH)/asm $(HPATH)/linux $(HPATH)/scsi $(HPATH)/net $(HPATH)/math-emu
  
  HOSTCC  	= gcc
@@ -60,7 +62,7 @@ diff -ur linux-2.4.32/Makefile linux-2.4.32-openwrt/Makefile
  
  CROSS_COMPILE 	=
  
-@@ -88,10 +88,9 @@
+@@ -88,10 +88,9 @@ export MODLIB
  #
  # standard CFLAGS
  #
@@ -70,9 +72,9 @@ diff -ur linux-2.4.32/Makefile linux-2.4.32-openwrt/Makefile
 -CFLAGS := $(CPPFLAGS) -Wall -Wstrict-prototypes -Wno-trigraphs -O2 \
 +CFLAGS := $(CPPFLAGS) -Wall -Wstrict-prototypes -Wno-trigraphs -Os \
  	  -fno-strict-aliasing -fno-common
- CFLAGS += -fno-builtin-sprintf
+ CFLAGS += -fno-builtin-strpbrk -fno-builtin-sprintf
  ifndef CONFIG_FRAME_POINTER
-@@ -104,6 +103,8 @@
+@@ -105,6 +104,8 @@ if_gcc4 = $(shell if echo __GNUC__ | $(C
  # disable pointer signedness warnings in gcc 4.0
  CFLAGS += $(call check_gcc,-Wno-pointer-sign,)
  

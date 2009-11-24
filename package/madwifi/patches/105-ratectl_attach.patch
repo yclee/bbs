@@ -1,8 +1,6 @@
-Index: madwifi-ng-r2568-20070710/net80211/ieee80211_rate.c
-===================================================================
---- madwifi-ng-r2568-20070710.orig/net80211/ieee80211_rate.c	2007-07-23 01:48:38.694185224 +0200
-+++ madwifi-ng-r2568-20070710/net80211/ieee80211_rate.c	2007-07-23 01:48:40.474286668 +0200
-@@ -100,8 +100,18 @@
+--- a/net80211/ieee80211_rate.c
++++ b/net80211/ieee80211_rate.c
+@@ -100,8 +100,18 @@ struct ath_ratectrl *ieee80211_rate_atta
  		ieee80211_load_module(buf);
  
  	if (!ratectls[id].attach) {

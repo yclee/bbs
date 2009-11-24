@@ -1,65 +1,75 @@
 # 
-# Copyright (C) 2006 OpenWrt.org
+# Copyright (C) 2006-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 7716 2007-06-23 15:54:36Z florian $
+# $Id: Makefile 11116 2008-05-11 22:27:32Z nico $
 
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=fuse
-PKG_VERSION:=2.6.5
+PKG_VERSION:=2.7.3
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=@SF/$(PKG_NAME)
-PKG_MD5SUM:=66bd30503df55a87b9868835ca5a45bc
+PKG_MD5SUM:=98563fc7b265b7479a3178181cbcf59a
 
 include $(INCLUDE_DIR)/package.mk
 
 define Package/fuse/Default
   TITLE:=FUSE
   DEPENDS:=@LINUX_2_6
-  DESCRIPTION:=\
-	FUSE (Filesystem in UserSpacE)
   URL:=http://fuse.sourceforge.net/
 endef
 
+define Package/fuse/Default/description
+ FUSE (Filesystem in UserSpacE)
+endef
+
 define Package/fuse-utils
-  $(call Package/fuse/Default)
+$(call Package/fuse/Default)
   SECTION:=utils
   CATEGORY:=Utilities
   DEPENDS:=+libfuse +kmod-fuse @LINUX_2_6
   TITLE+= (utilities)
-  DESCRIPTION+=\\\
-	\\\
-	This package contains the FUSE utilities.
+  SUBMENU:=disc
+endef
+
+define Package/fuse-utils/description
+$(call Package/fuse/Default/description)
+ This package contains the FUSE utilities.
 endef
 
 define KernelPackage/fuse
+$(call Package/fuse/Default)
   SUBMENU:=Filesystems
-  $(call Package/fuse/Default)
   DEPENDS:=@LINUX_2_6
   TITLE+= (kernel module)
-  DESCRIPTION+=\\\
-	\\\
-	This package contains the FUSE kernel module.
-  FILES:=$(PKG_INSTALL_DIR)/lib/modules/$(LINUX_VERSION)/kernel/fs/fuse/fuse.$(LINUX_KMOD_SUFFIX)
-  VERSION:=$(LINUX_VERSION)+$(PKG_VERSION)-$(BOARD)-$(PKG_RELEASE)
+  KCONFIG:= CONFIG_FUSE_FS
+  FILES:=$(LINUX_DIR)/fs/fuse/fuse.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,80,fuse)
 endef
 
+define KernelPackage/fuse/description
+$(call Package/fuse/Default/description)
+ This package contains the FUSE kernel module.
+endef
+
 define Package/libfuse
-  $(call Package/fuse/Default)
+$(call Package/fuse/Default)
   SECTION:=libs
   CATEGORY:=Libraries
   DEPENDS:=@LINUX_2_6
   TITLE+= (library)
-  DESCRIPTION+=\\\
-	\\\
-	This package contains the FUSE shared library, needed by other programs.
+  SUBMENU:=disc
+endef
+
+define Package/libfuse/description
+$(call Package/fuse/Default/description)
+ This package contains the FUSE shared library, needed by other programs.
 endef
 
 CONFIGURE_VARS += \
@@ -69,13 +79,23 @@ CONFIGURE_ARGS += \
 	--enable-shared \
 	--enable-static \
 	--disable-rpath \
-	--enable-kernel-module \
 	--enable-lib \
 	--enable-util \
 	--disable-example \
 	--disable-auto-modprobe \
 	--with-kernel="$(LINUX_DIR)" \
 	--disable-mtab
+
+ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),lt,2.6.25)),1)
+  define KernelPackage/fuse/2.6
+    KCONFIG:=
+    FILES:=$(PKG_INSTALL_DIR)/lib/modules/$(LINUX_VERSION)/kernel/fs/fuse/fuse.$(LINUX_KMOD_SUFFIX)
+  endef
+
+ CONFIGURE_ARGS += --enable-kernel-module
+else
+ CONFIGURE_ARGS += --disable-kernel-module
+endif
 
 define Build/Configure
 	(cd $(PKG_BUILD_DIR); rm -f config.cache; \
@@ -99,25 +119,19 @@ define Build/Compile
 endef
 
 define Build/InstallDev
-	mkdir -p $(STAGING_DIR)/usr/include
-	$(CP)	$(PKG_INSTALL_DIR)/usr/include/fuse{,.h} $(STAGING_DIR)/usr/include/
-	mkdir -p $(STAGING_DIR)/usr/lib
-	$(CP)	$(PKG_INSTALL_DIR)/usr/lib/libfuse.{a,so*} $(STAGING_DIR)/usr/lib/
-	mkdir -p $(STAGING_DIR)/usr/lib/pkgconfig
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/pkgconfig/fuse.pc $(STAGING_DIR)/usr/lib/pkgconfig/
-	$(SED) 's,-I$$$${includedir}/fuse,,g' $(STAGING_DIR)/usr/lib/pkgconfig/fuse.pc
-	$(SED) 's,-L$$$${libdir},,g' $(STAGING_DIR)/usr/lib/pkgconfig/fuse.pc
-endef
-	
-define Build/UninstallDev
-	rm -rf	$(STAGING_DIR)/usr/include/fuse{,.h} \
-		$(STAGING_DIR)/usr/lib/libfuse.{a,so*} \
-		$(STAGING_DIR)/usr/lib/pkgconfig/fuse.pc
+	mkdir -p $(1)/usr/include
+	$(CP)	$(PKG_INSTALL_DIR)/usr/include/fuse{,.h} $(1)/usr/include/
+	mkdir -p $(1)/usr/lib
+	$(CP)	$(PKG_INSTALL_DIR)/usr/lib/libfuse.{a,so*} $(1)/usr/lib/
+	mkdir -p $(1)/usr/lib/pkgconfig
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/pkgconfig/fuse.pc $(1)/usr/lib/pkgconfig/
+	$(SED) 's,-I$$$${includedir}/fuse,,g' $(1)/usr/lib/pkgconfig/fuse.pc
+	$(SED) 's,-L$$$${libdir},,g' $(1)/usr/lib/pkgconfig/fuse.pc
 endef
 
 define Package/fuse-utils/install
 	$(INSTALL_DIR) $(1)/usr/bin
-	$(CP) $(PKG_INSTALL_DIR)/usr/bin/fusermount $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/fusermount $(1)/usr/bin/
 endef
 
 define Package/libfuse/install

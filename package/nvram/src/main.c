@@ -9,7 +9,7 @@
  * SPECIFICALLY DISCLAIMS ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
  * FOR A SPECIFIC PURPOSE OR NONINFRINGEMENT CONCERNING THIS SOFTWARE.
  *
- * $Id: main.c 3089 2006-01-31 15:22:43Z wbx $
+ * $Id: main.c 9479 2007-11-01 17:38:02Z florian $
  */
 
 #include <stdio.h>
@@ -22,7 +22,7 @@
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: nvram [get name] [set name=value] [unset name] [show]\n");
+	fprintf(stderr, "usage: nvram [get name] [set name=value] [unset name] [commit] [show]\n");
 	exit(0);
 }
 

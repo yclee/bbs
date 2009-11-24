@@ -4,7 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 6582 2007-03-16 20:21:39Z nbd $
+# $Id: Makefile 8694 2007-09-08 19:55:42Z nbd $
 
 include $(TOPDIR)/rules.mk
 
@@ -23,7 +23,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/yamonenv
   SECTION:=utils
   CATEGORY:=Utilities
-  DEPENDS:=@LINUX_2_6_AU1000
+  DEPENDS:=@TARGET_au1000
   TITLE:=YAMON configuration utility
   URL:=http://meshcube.org/nylon/stable/sources/
 endef

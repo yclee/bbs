@@ -1,10 +1,10 @@
 # 
-# Copyright (C) 2006 OpenWrt.org
+# Copyright (C) 2006-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 6582 2007-03-16 20:21:39Z nbd $
+# $Id: Makefile 11053 2008-05-05 21:58:03Z ymano $
 
 include $(TOPDIR)/rules.mk
 
@@ -13,12 +13,7 @@ PKG_VERSION:=106
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
-PKG_SOURCE_URL:=ftp://ftp.kernel.org/pub/linux/utils/kernel/hotplug/ \
-	http://ftp.kernel.org/pub/linux/utils/kernel/hotplug/ \
-	ftp://ftp.de.kernel.org/pub/linux/utils/kernel/hotplug/ \
-	http://ftp.de.kernel.org/pub/linux/utils/kernel/hotplug/ \
-	ftp://ftp.fr.kernel.org/pub/linux/utils/kernel/hotplug/ \
-	http://ftp.fr.kernel.org/pub/linux/utils/kernel/hotplug/
+PKG_SOURCE_URL:=@KERNEL/linux/utils/kernel/hotplug/
 PKG_MD5SUM:=320ccd2d0f4540d10e021bafa14f8985
 
 include $(INCLUDE_DIR)/package.mk
@@ -28,17 +23,35 @@ define Package/udev
   CATEGORY:=Utilities
   DEPENDS:=@LINUX_2_6
   TITLE:=Dynamic device management subsystem
-  DESCRIPTION:=\
-	udev provides a dynamic device directory containing only the files for \\\
-	actually present devices. It creates or removes device node files in \\\
-	the /dev directory, or it renames network interfaces.
   URL:=http://www.kernel.org/pub/linux/utils/kernel/hotplug/udev.html
 endef
 
+define Package/udev/description
+ udev provides a dynamic device directory containing only the files for 
+ actually present devices. It creates or removes device node files in 
+ the /dev directory, or it renames network interfaces.
+endef
+
 define Package/udevtrigger
-  $(call Package/udev)
+$(call Package/udev)
+  SECTION:=base
+  CATEGORY:=Base system
   TITLE:=Small utility to request kernel devices events for coldplug
 endef
+
+define Package/udevextras
+$(call Package/udev)
+  TITLE:=Utilities for udev scripts, for general device discovery
+  MENU:=1
+endef
+
+define Package/udevextras/config
+  source "$(SOURCE)/udevextras-config.in"
+endef
+
+UDEV_ALL_EXTRAS=ata_id cdrom_id dasd_id edd_id scsi_id path_id usb_id volume_id
+UDEV_EXTRAS=$(strip $(foreach e, $(UDEV_ALL_EXTRAS), \
+		$(if $(CONFIG_UDEVEXTRAS_$(e)),extras/$(e))))
 
 define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR) \
@@ -47,6 +60,8 @@ define Build/Compile
 		OPTFLAGS="$(TARGET_CFLAGS)" \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
 		INSTALL="install -c" \
+		EXTRAS="$(UDEV_EXTRAS)" \
+		VOLUME_ID_STATIC=true \
 		all install
 endef
 
@@ -55,13 +70,16 @@ define Package/udev/install
 	$(CP) $(PKG_INSTALL_DIR)/etc/udev/* $(1)/etc/udev/
 	install -d -m0775 $(1)/lib/udev
 	install -d -m0775 $(1)/sbin/
-	$(CP) $(PKG_INSTALL_DIR)/sbin/udevcontrol $(1)/sbin/
-	$(CP) $(PKG_INSTALL_DIR)/sbin/udevd $(1)/sbin/
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/sbin/udevcontrol $(1)/sbin/
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/sbin/udevd $(1)/sbin/
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/sbin/udevsettle $(1)/sbin/
 	install -d -m0775 $(1)/usr/bin/
-	$(CP) $(PKG_INSTALL_DIR)/usr/bin/udevinfo $(1)/usr/bin/
-	$(CP) $(PKG_INSTALL_DIR)/usr/bin/udevtest $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/udevinfo $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/udevtest $(1)/usr/bin/
 	install -d -m0775 $(1)/usr/sbin/
-	$(CP) $(PKG_INSTALL_DIR)/usr/sbin/udevmonitor $(1)/usr/sbin/
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/sbin/udevmonitor $(1)/usr/sbin/
+	install -d -m0775 $(1)/etc/udev/rules.d
+	$(CP) files/20-input-grouping.rules $(1)/etc/udev/rules.d/
 endef
 
 define Package/udevtrigger/install
@@ -69,5 +87,15 @@ define Package/udevtrigger/install
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/sbin/udevtrigger $(1)/sbin/
 endef
 
+define Package/udevextras/install
+	$(INSTALL_DIR) $(1)/etc/udev
+	$(CP) $(PKG_BUILD_DIR)/etc/udev/rules.d $(1)/etc/udev/
+	$(INSTALL_DIR) $(1)/lib/udev
+	$$(foreach f, $$(shell $(FIND) $(PKG_INSTALL_DIR)/lib/udev/ -type f), \
+		$(CP) $$(f) $(1)/lib/udev/ ; \
+	)
+endef
+
 $(eval $(call BuildPackage,udev))
 $(eval $(call BuildPackage,udevtrigger))
+$(eval $(call BuildPackage,udevextras))

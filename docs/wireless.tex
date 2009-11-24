@@ -1,5 +1,5 @@
 The WiFi settings are configured in the file \texttt{/etc/config/wireless}
-(currently supported on Broadcom and Atheros). When booting the router for the first time
+(currently supported on Broadcom, Atheros and mac80211). When booting the router for the first time
 it should detect your card and create a sample configuration file. By default '\texttt{option network  lan}' is
 commented. This prevents unsecured sharing of the network over the wireless interface.
 
@@ -7,7 +7,7 @@ Each wireless driver has its own configuration script in \texttt{/lib/wifi/drive
 driver specific options and configurations. This script is also calling driver specific binaries like wlc for
 Broadcom, or hostapd and wpa\_supplicant for atheros.
 
-The reason for using such architecture, is that it abstracts the driver configuration 
+The reason for using such architecture, is that it abstracts the driver configuration. 
 
 \paragraph{Generic Broadcom wireless config:}
 
@@ -31,10 +31,26 @@ config wifi-iface
 config wifi-device      "wifi0"
     option type         "atheros"
     option channel      "5"
-    option agmode  	"11g"
+    option hwmode	"11g"
 
 config wifi-iface
     option device       "wifi0"
+#   option network  lan
+    option mode         "ap"
+    option ssid         "OpenWrt"
+    option hidden       "0"
+    option encryption   "none"
+\end{Verbatim}
+
+\paragraph{Generic mac80211 wireless config:}
+
+\begin{Verbatim}
+config wifi-device      "wifi0"
+    option type         "mac80211"
+    option channel      "5"
+
+config wifi-iface
+    option device       "wlan0"
 #   option network  lan
     option mode         "ap"
     option ssid         "OpenWrt"
@@ -77,21 +93,25 @@ of that (if supported by the driver).
 A full outline of the wireless configuration file with description of each field:
 
 \begin{Verbatim}
-config wifi-device     wifi device name
-    option type     broadcom, atheros
-    option country  us, uk, fr, de, etc.
-    option channel  1-14
-    option maxassoc 1-128 (broadcom only)
-    option distance 1-n
-    option agmode     11b, 11g, 11a, 11bg (atheros only)
+config wifi-device    wifi device name
+    option type       broadcom, atheros, mac80211
+    option country    us, uk, fr, de, etc.
+    option channel    1-14
+    option maxassoc   1-128 (broadcom only)
+    option distance   1-n
+    option hwmode     11b, 11g, 11a, 11bg (atheros, mac80211)
+    option rxantenna  0,1,2 (atheros, broadcom)
+    option txantenna  0,1,2 (atheros, broadcom)
+    option txpower  transmission power in dBm
 
 config wifi-iface
-    option network  the interface you want wifi to bridge with 
+    option network  the interface you want wifi to bridge with
     option device   wifi0, wifi1, wifi2, wifiN
-    option mode     ap, sta, adhoc, or wds
+    option mode     ap, sta, adhoc, monitor, or wds
+    option txpower  (deprecated) transmission power in dBm
     option ssid     ssid name
     option bssid    bssid address
-    option encryption none, wep, psk, psk2, wpa, wpa2 
+    option encryption none, wep, psk, psk2, wpa, wpa2
     option key      encryption key
     option key1     key 1
     option key2     key 2
@@ -124,6 +144,17 @@ config wifi-iface
 	\item \texttt{mode} \\
 		The frequency band (\texttt{b}, \texttt{g}, \texttt{bg}, \texttt{a}). This feature is only supported on the atheros chipset.
 
+    \item \texttt{diversity} \\
+	Optional: Enable diversity for the Wi-Fi device. This feature is supported only on the atheros chipset.
+
+    \item \texttt{rxantenna} \\
+	Optional: Antenna identifier (0, 1 or 2) for reception. This feature is supported by atheros and some broadcom chipsets.
+
+    \item \texttt{txantenna} \\
+	Optional: Antenna identifier (0, 1 or 2) for emission. This feature is supported by atheros and some broadcom chipsets.
+
+    \item \texttt{txpower}
+	Set the transmission power to be used. The amount is specified in dBm.
 
 \end{itemize}
 
@@ -150,6 +181,9 @@ config wifi-iface
             \item \texttt{adhoc} \\
                 Ad-Hoc mode
 
+            \item \texttt{monitor} \\
+                Monitor mode
+
             \item \texttt{wds} \\
                 WDS point-to-point link
 
@@ -160,6 +194,9 @@ config wifi-iface
 
     \item \texttt{bssid}
 	Set the BSSID address to be used for wds to set the mac address of the other wds unit.
+
+    \item \texttt{txpower}
+	(Deprecated, set in wifi-device) Set the transmission power to be used. The amount is specified in dBm.
 
     \item \texttt{encryption} \\
         Encryption setting. Accepts the following values:
@@ -181,7 +218,7 @@ config wifi-iface
         The RADIUS server ip address
 
     \item \texttt{port} (wpa) \\
-        The RADIUS server port
+        The RADIUS server port (defaults to 1812)
 
     \item \texttt{hidden} \\
         0 broadcasts the ssid; 1 disables broadcasting of the ssid
@@ -192,6 +229,100 @@ config wifi-iface
 
 \end{itemize}
 
+\paragraph{Wireless Distribution System}
+
+WDS is a non-standard mode which will be working between two Broadcom devices for instance
+but not between a Broadcom and Atheros device.
+
+\subparagraph{Unencrypted WDS connections}
+
+This configuration example shows you how to setup unencrypted WDS connections.
+We assume that the peer configured as below as the BSSID ca:fe:ba:be:00:01
+and the remote WDS endpoint ca:fe:ba:be:00:02 (option bssid field).
+
+\begin{Verbatim}
+config wifi-device      "wl0"
+    option type		"broadcom"
+    option channel      "5"
+
+config wifi-iface
+    option device       "wl0"
+    option network  	lan
+    option mode         "ap"
+    option ssid         "OpenWrt"
+    option hidden       "0"
+    option encryption   "none"
+
+config wifi-iface
+    option device       "wl0"
+    option network      lan
+    option mode         wds
+    option ssid         "OpenWrt WDS"
+    option bssid        "ca:fe:ba:be:00:02"
+\end{Verbatim}
+
+\subparagraph{Encrypted WDS connections}
+
+It is also possible to encrypt WDS connections. \texttt{psk}, \texttt{psk2} and
+\texttt{psk+psk2} modes are supported. Configuration below is an example
+configuration using Pre-Shared-Keys with AES algorithm.
+
+\begin{Verbatim}
+config wifi-device  wl0
+    option type     broadcom
+    option channel  5
+
+config wifi-iface
+    option device   "wl0"
+    option network  lan
+    option mode     ap
+    option ssid     "OpenWrt"
+    option encryption  psk2
+    option key      "<key for clients>"
+
+config wifi-iface
+    option device   "wl0"
+    option network  lan
+    option mode     wds
+    option bssid    ca:fe:ba:be:00:02
+    option ssid     "OpenWrt WDS"
+    option encryption	psk2
+    option key      "<psk for WDS>"
+\end{Verbatim}
+
+\paragraph{802.1x configurations}
+
+OpenWrt supports both 802.1x client and Access Point
+configurations. 802.1x client is only working with
+Atheros or mac80211 drivers. Configuration only
+supports EAP types TLS, TTLS or PEAP.
+
+\subparagraph{EAP-TLS}
+
+\begin{Verbatim}
+config wifi-iface
+    option device         "ath0"
+    option network        lan
+    option ssid           OpenWrt
+    option eap_type       tls
+    option ca_cert        "/etc/config/certs/ca.crt"
+    option priv_key       "/etc/config/certs/priv.crt"
+    option priv_key_pwd   "PKCS#12 passphrase"
+\end{Verbatim}
+
+\subparagraph{EAP-PEAP}
+
+\begin{Verbatim}
+config wifi-iface
+    option device         "ath0"
+    option network        lan
+    option ssid           OpenWrt
+    option eap_type       peap
+    option ca_cert        "/etc/config/certs/ca.crt"
+    option auth           MSCHAPV2
+    option identity       username
+    option password       password
+\end{Verbatim}
 
 \paragraph{Limitations:}
 
@@ -204,6 +335,7 @@ Only the following mode combinations are supported:
             \item 1x \texttt{sta}, 0-3x \texttt{ap}
             \item 1-4x \texttt{ap}
             \item 1x \texttt{adhoc}
+            \item 1x \texttt{monitor}
         \end{itemize}
 
         WDS links can only be used in pure AP mode and cannot use WEP (except when sharing the
@@ -211,15 +343,18 @@ Only the following mode combinations are supported:
 
     \item \textbf{Atheros}: \\
         \begin{itemize}
-            \item 1x \texttt{sta}, 0-4x \texttt{ap}
-            \item 1-4x \texttt{ap}
+            \item 1x \texttt{sta}, 0-Nx \texttt{ap}
+            \item 1-Nx \texttt{ap}
             \item 1x \texttt{adhoc}
         \end{itemize}
+
+	N is the maximum number of VAPs that the module allows, it defaults to 4, but can be
+	changed by loading the module with the maxvaps=N parameter.
 \end{itemize}
 
 \paragraph{Adding a new driver configuration}
 
-Since we currently only support two different wireless drivers : Broadcom and Atheros,
+Since we currently only support thread different wireless drivers : Broadcom, Atheros and mac80211,
 you might be interested in adding support for another driver like Ralink RT2x00, 
 Texas Instruments ACX100/111.
 

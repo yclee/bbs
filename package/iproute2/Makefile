@@ -4,18 +4,19 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 7540 2007-06-09 13:17:46Z noz $
+# $Id: Makefile 11598 2008-06-28 17:32:21Z blogic $
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=iproute2
-PKG_VERSION:=2.6.20-070313
+PKG_VERSION:=2.6.25
 PKG_RELEASE:=1
 
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=http://developer.osdl.org/dev/iproute2/download/
-PKG_MD5SUM:=7bc5883aadf740761fa2dd70b661e8cc
-PKG_BUILD_DIR:=$(BUILD_DIR)/iproute-$(PKG_VERSION)
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
+PKG_SOURCE_URL:=http://devresources.linux-foundation.org/dev/iproute2/download/
+PKG_MD5SUM:=5737bade2f5e03fad0e2c81da91e551e
+
+PKG_BUILD_DIR:=$(BUILD_DIR)/iproute2-$(PKG_VERSION)
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -26,17 +27,17 @@ define Package/iproute2/Default
 endef
 
 define Package/ip
-  $(call Package/iproute2/Default)
+$(call Package/iproute2/Default)
   TITLE:=Routing control utility
 endef
 
 define Package/tc
-  $(call Package/iproute2/Default)
+$(call Package/iproute2/Default)
   TITLE:=Traffic control utility
 endef
 
 define Package/genl
-  $(call Package/iproute2/Default)
+$(call Package/iproute2/Default)
   TITLE:=General netlink utility frontend
 endef
 
@@ -59,6 +60,8 @@ endef
 
 define Package/ip/install
 	$(INSTALL_DIR) $(1)/usr/sbin
+	$(INSTALL_DIR) $(1)/etc/iproute2
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/etc/iproute2/rt_tables $(1)/etc/iproute2
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/ip/ip $(1)/usr/sbin/
 endef
 

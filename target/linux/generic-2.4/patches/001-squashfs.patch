@@ -1,6 +1,7 @@
-diff --new-file -urp linux-2.4.32/fs/Config.in linux-2.4.32-squashfs3.0/fs/Config.in
---- linux-2.4.32/fs/Config.in	2004-11-17 11:54:21.000000000 +0000
-+++ linux-2.4.32-squashfs3.0/fs/Config.in	2006-03-07 21:12:36.000000000 +0000
+Index: linux-2.4.35.4/fs/Config.in
+===================================================================
+--- linux-2.4.35.4.orig/fs/Config.in
++++ linux-2.4.35.4/fs/Config.in
 @@ -51,6 +51,14 @@ if [ "$CONFIG_JFFS2_FS" = "y" -o "$CONFI
     int 'JFFS2 debugging verbosity (0 = quiet, 2 = noisy)' CONFIG_JFFS2_FS_DEBUG 0
  fi
@@ -16,9 +17,10 @@ diff --new-file -urp linux-2.4.32/fs/Config.in linux-2.4.32-squashfs3.0/fs/Confi
  bool 'Virtual memory file system support (former shm fs)' CONFIG_TMPFS
  define_bool CONFIG_RAMFS y
  
-diff --new-file -urp linux-2.4.32/fs/Makefile linux-2.4.32-squashfs3.0/fs/Makefile
---- linux-2.4.32/fs/Makefile	2004-02-18 13:36:31.000000000 +0000
-+++ linux-2.4.32-squashfs3.0/fs/Makefile	2006-03-07 21:12:36.000000000 +0000
+Index: linux-2.4.35.4/fs/Makefile
+===================================================================
+--- linux-2.4.35.4.orig/fs/Makefile
++++ linux-2.4.35.4/fs/Makefile
 @@ -65,6 +65,7 @@ subdir-$(CONFIG_REISERFS_FS)	+= reiserfs
  subdir-$(CONFIG_DEVPTS_FS)	+= devpts
  subdir-$(CONFIG_SUN_OPENPROMFS)	+= openpromfs
@@ -27,9 +29,10 @@ diff --new-file -urp linux-2.4.32/fs/Makefile linux-2.4.32-squashfs3.0/fs/Makefi
  subdir-$(CONFIG_JFS_FS)		+= jfs
  subdir-$(CONFIG_XFS_FS)		+= xfs
  
-diff --new-file -urp linux-2.4.32/fs/squashfs/inode.c linux-2.4.32-squashfs3.0/fs/squashfs/inode.c
---- linux-2.4.32/fs/squashfs/inode.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-2.4.32-squashfs3.0/fs/squashfs/inode.c	2006-03-07 21:12:36.000000000 +0000
+Index: linux-2.4.35.4/fs/squashfs/inode.c
+===================================================================
+--- /dev/null
++++ linux-2.4.35.4/fs/squashfs/inode.c
 @@ -0,0 +1,2028 @@
 +/*
 + * Squashfs - a compressed read only filesystem for Linux
@@ -2059,9 +2062,10 @@ diff --new-file -urp linux-2.4.32/fs/squashfs/inode.c linux-2.4.32-squashfs3.0/f
 +MODULE_DESCRIPTION("squashfs, a compressed read-only filesystem");
 +MODULE_AUTHOR("Phillip Lougher <phillip@lougher.org.uk>");
 +MODULE_LICENSE("GPL");
-diff --new-file -urp linux-2.4.32/fs/squashfs/Makefile linux-2.4.32-squashfs3.0/fs/squashfs/Makefile
---- linux-2.4.32/fs/squashfs/Makefile	1970-01-01 01:00:00.000000000 +0100
-+++ linux-2.4.32-squashfs3.0/fs/squashfs/Makefile	2006-03-07 21:12:36.000000000 +0000
+Index: linux-2.4.35.4/fs/squashfs/Makefile
+===================================================================
+--- /dev/null
++++ linux-2.4.35.4/fs/squashfs/Makefile
 @@ -0,0 +1,11 @@
 +#
 +# Makefile for the linux squashfs routines.
@@ -2074,9 +2078,10 @@ diff --new-file -urp linux-2.4.32/fs/squashfs/Makefile linux-2.4.32-squashfs3.0/
 +obj-m := $(O_TARGET)
 +
 +include $(TOPDIR)/Rules.make
-diff --new-file -urp linux-2.4.32/fs/squashfs/squashfs2_0.c linux-2.4.32-squashfs3.0/fs/squashfs/squashfs2_0.c
---- linux-2.4.32/fs/squashfs/squashfs2_0.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-2.4.32-squashfs3.0/fs/squashfs/squashfs2_0.c	2006-03-07 21:12:36.000000000 +0000
+Index: linux-2.4.35.4/fs/squashfs/squashfs2_0.c
+===================================================================
+--- /dev/null
++++ linux-2.4.35.4/fs/squashfs/squashfs2_0.c
 @@ -0,0 +1,751 @@
 +/*
 + * Squashfs - a compressed read only filesystem for Linux
@@ -2829,9 +2834,10 @@ diff --new-file -urp linux-2.4.32/fs/squashfs/squashfs2_0.c linux-2.4.32-squashf
 +
 +	return 1;
 +}
-diff --new-file -urp linux-2.4.32/fs/squashfs/squashfs.h linux-2.4.32-squashfs3.0/fs/squashfs/squashfs.h
---- linux-2.4.32/fs/squashfs/squashfs.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-2.4.32-squashfs3.0/fs/squashfs/squashfs.h	2006-03-07 21:12:36.000000000 +0000
+Index: linux-2.4.35.4/fs/squashfs/squashfs.h
+===================================================================
+--- /dev/null
++++ linux-2.4.35.4/fs/squashfs/squashfs.h
 @@ -0,0 +1,85 @@
 +/*
 + * Squashfs - a compressed read only filesystem for Linux
@@ -2918,9 +2924,10 @@ diff --new-file -urp linux-2.4.32/fs/squashfs/squashfs.h linux-2.4.32-squashfs3.
 +	return 0;
 +}
 +#endif
-diff --new-file -urp linux-2.4.32/include/linux/fs.h linux-2.4.32-squashfs3.0/include/linux/fs.h
---- linux-2.4.32/include/linux/fs.h	2005-04-04 02:42:20.000000000 +0100
-+++ linux-2.4.32-squashfs3.0/include/linux/fs.h	2006-03-07 21:12:36.000000000 +0000
+Index: linux-2.4.35.4/include/linux/fs.h
+===================================================================
+--- linux-2.4.35.4.orig/include/linux/fs.h
++++ linux-2.4.35.4/include/linux/fs.h
 @@ -324,6 +324,7 @@ extern void set_bh_page(struct buffer_he
  #include <linux/usbdev_fs_i.h>
  #include <linux/jffs2_fs_i.h>
@@ -2953,9 +2960,10 @@ diff --new-file -urp linux-2.4.32/include/linux/fs.h linux-2.4.32-squashfs3.0/in
  		void			*generic_sbp;
  	} u;
  	/*
-diff --new-file -urp linux-2.4.32/include/linux/squashfs_fs.h linux-2.4.32-squashfs3.0/include/linux/squashfs_fs.h
---- linux-2.4.32/include/linux/squashfs_fs.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-2.4.32-squashfs3.0/include/linux/squashfs_fs.h	2006-03-07 21:12:36.000000000 +0000
+Index: linux-2.4.35.4/include/linux/squashfs_fs.h
+===================================================================
+--- /dev/null
++++ linux-2.4.35.4/include/linux/squashfs_fs.h
 @@ -0,0 +1,915 @@
 +#ifndef SQUASHFS_FS
 +#define SQUASHFS_FS
@@ -3872,9 +3880,10 @@ diff --new-file -urp linux-2.4.32/include/linux/squashfs_fs.h linux-2.4.32-squas
 +
 +#endif
 +#endif
-diff --new-file -urp linux-2.4.32/include/linux/squashfs_fs_i.h linux-2.4.32-squashfs3.0/include/linux/squashfs_fs_i.h
---- linux-2.4.32/include/linux/squashfs_fs_i.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-2.4.32-squashfs3.0/include/linux/squashfs_fs_i.h	2006-03-07 21:12:36.000000000 +0000
+Index: linux-2.4.35.4/include/linux/squashfs_fs_i.h
+===================================================================
+--- /dev/null
++++ linux-2.4.35.4/include/linux/squashfs_fs_i.h
 @@ -0,0 +1,44 @@
 +#ifndef SQUASHFS_FS_I
 +#define SQUASHFS_FS_I
@@ -3920,9 +3929,10 @@ diff --new-file -urp linux-2.4.32/include/linux/squashfs_fs_i.h linux-2.4.32-squ
 +	} u;
 +};
 +#endif
-diff --new-file -urp linux-2.4.32/include/linux/squashfs_fs_sb.h linux-2.4.32-squashfs3.0/include/linux/squashfs_fs_sb.h
---- linux-2.4.32/include/linux/squashfs_fs_sb.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-2.4.32-squashfs3.0/include/linux/squashfs_fs_sb.h	2006-03-07 21:12:36.000000000 +0000
+Index: linux-2.4.35.4/include/linux/squashfs_fs_sb.h
+===================================================================
+--- /dev/null
++++ linux-2.4.35.4/include/linux/squashfs_fs_sb.h
 @@ -0,0 +1,74 @@
 +#ifndef SQUASHFS_FS_SB
 +#define SQUASHFS_FS_SB
@@ -3998,9 +4008,10 @@ diff --new-file -urp linux-2.4.32/include/linux/squashfs_fs_sb.h linux-2.4.32-sq
 +	int			(*read_fragment_index_table)(struct super_block *s);
 +};
 +#endif
-diff --new-file -urp linux-2.4.32/init/do_mounts.c linux-2.4.32-squashfs3.0/init/do_mounts.c
---- linux-2.4.32/init/do_mounts.c	2003-11-28 18:26:21.000000000 +0000
-+++ linux-2.4.32-squashfs3.0/init/do_mounts.c	2006-03-07 21:12:36.000000000 +0000
+Index: linux-2.4.35.4/init/do_mounts.c
+===================================================================
+--- linux-2.4.35.4.orig/init/do_mounts.c
++++ linux-2.4.35.4/init/do_mounts.c
 @@ -15,6 +15,7 @@
  #include <linux/minix_fs.h>
  #include <linux/ext2_fs.h>
@@ -4049,9 +4060,10 @@ diff --new-file -urp linux-2.4.32/init/do_mounts.c linux-2.4.32-squashfs3.0/init
  	/*
  	 * Read block 1 to test for minix and ext2 superblock
  	 */
-diff --new-file -urp linux-2.4.32/lib/Config.in linux-2.4.32-squashfs3.0/lib/Config.in
---- linux-2.4.32/lib/Config.in	2003-11-28 18:26:21.000000000 +0000
-+++ linux-2.4.32-squashfs3.0/lib/Config.in	2006-03-07 21:12:36.000000000 +0000
+Index: linux-2.4.35.4/lib/Config.in
+===================================================================
+--- linux-2.4.35.4.orig/lib/Config.in
++++ linux-2.4.35.4/lib/Config.in
 @@ -10,6 +10,7 @@ tristate 'CRC32 functions' CONFIG_CRC32
  # Do we need the compression support?
  #

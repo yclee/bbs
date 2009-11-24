@@ -4,13 +4,13 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 6501 2007-03-04 04:41:46Z pavlov $
+# $Id: Makefile 12655 2008-09-23 09:23:58Z nbd $
 
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=mtd
-PKG_RELEASE:=5
+PKG_RELEASE:=8
 
 PKG_BUILD_DIR := $(KERNEL_BUILD_DIR)/$(PKG_NAME)
 
@@ -20,9 +20,11 @@ define Package/mtd
   SECTION:=utils
   CATEGORY:=Base system
   TITLE:=Update utility for trx firmware images
-  DESCRIPTION:=\
-	This package contains an utility useful to upgrade from other firmware or \\\
-	older OpenWrt releases.
+endef
+
+define Package/mtd/description
+ This package contains an utility useful to upgrade from other firmware or 
+ older OpenWrt releases.
 endef
 
 define Build/Prepare
@@ -30,10 +32,13 @@ define Build/Prepare
 	$(CP) ./src/* $(PKG_BUILD_DIR)/
 endef
 
+target=$(firstword $(subst -, ,$(BOARD)))
+
 define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		$(TARGET_CONFIGURE_OPTS) \
-		CFLAGS="$(TARGET_CFLAGS) -Dtarget_$(BOARD)=1"
+		TARGET=$(target) \
+		CFLAGS="$(TARGET_CFLAGS) -Dtarget_$(target)=1 -Wall"
 endef
 
 define Package/mtd/install

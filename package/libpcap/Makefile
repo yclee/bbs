@@ -4,17 +4,17 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 6643 2007-03-23 08:11:08Z nico $
+# $Id: Makefile 12225 2008-08-06 22:10:29Z nbd $
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=libpcap
-PKG_VERSION:=0.9.4
+PKG_VERSION:=0.9.8
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=http://www.tcpdump.org/release/
-PKG_MD5SUM:=79025766e8027df154cb1f32de8a7974
+PKG_MD5SUM:=5208f24d0328ee7c20b52c43eaa9aa0e
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -22,11 +22,15 @@ define Package/libpcap
   SECTION:=libs
   CATEGORY:=Libraries
   TITLE:=Low-level packet capture library
-  DESCRIPTION:=\
-	This package contains a system-independent library for user-level \\\
-	network packet capture.
   URL:=http://www.tcpdump.org/
 endef
+
+define Package/libpcap/description
+ This package contains a system-independent library for user-level network
+ packet capture.
+endef
+
+TARGET_CFLAGS += $(FPIC)
 
 CONFIGURE_ARGS += \
 	--enable-shared \
@@ -44,17 +48,12 @@ define Build/Compile
 endef
 
 define Build/InstallDev
-	mkdir -p $(STAGING_DIR)/usr/include
+	mkdir -p $(1)/usr/include
 	$(CP)	$(PKG_INSTALL_DIR)/usr/include/pcap{,-bpf,-namedb}.h \
-		$(STAGING_DIR)/usr/include/
-	mkdir -p $(STAGING_DIR)/usr/lib
+		$(1)/usr/include/
+	mkdir -p $(1)/usr/lib
 	$(CP)	$(PKG_INSTALL_DIR)/usr/lib/libpcap.{a,so*} \
-		$(STAGING_DIR)/usr/lib/
-endef
-
-define Build/UninstallDev
-	rm -rf	$(STAGING_DIR)/usr/include/pcap{,-bpf,-namedb}.h \
-		$(STAGING_DIR)/usr/lib/libpcap.{a,so*}
+		$(1)/usr/lib/
 endef
 
 define Package/libpcap/install

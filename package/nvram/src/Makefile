@@ -1,15 +1,11 @@
-# $Id: Makefile 6177 2007-01-22 14:46:37Z nbd $
+# $Id: Makefile 10749 2008-04-07 00:24:19Z nbd $
 
-LIBSHARED_OBJS := shutils.o wl.o linux_timer.o
 LIBNVRAM_OBJS := nvram.o
 
-all: libshared.so libnvram.so nvram
+all: libnvram.so nvram
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -I. -Iinclude -o $@ $^
-
-libshared.so: $(LIBSHARED_OBJS)
-	$(CC) -shared -o $@ $^
 
 libnvram.so: $(LIBNVRAM_OBJS)
 	$(CC) -shared -o $@ $^

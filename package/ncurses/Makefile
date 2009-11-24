@@ -4,7 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 7776 2007-06-29 11:02:17Z florian $
+# $Id: Makefile 12225 2008-08-06 22:10:29Z nbd $
 
 include $(TOPDIR)/rules.mk
 
@@ -12,13 +12,9 @@ PKG_NAME:=ncurses
 PKG_VERSION:=5.6
 PKG_RELEASE:=1
 
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=@GNU/ncurses
 PKG_MD5SUM:=b6593abe1089d6aab1551c105c9300e3
-PKG_CAT:=zcat
-
-PKG_INSTALL_DIR:=$(PKG_BUILD_DIR)/ipkg-install
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -26,12 +22,13 @@ define Package/libncurses
   SECTION:=libs
   CATEGORY:=Libraries
   TITLE:=Terminal handling library
-  DESCRIPTION:=Terminal handling library
   URL:=http://www.gnu.org/software/ncurses/
 endef
 
 define Build/Configure
 endef
+
+TARGET_CFLAGS += $(FPIC)
 
 define Build/Compile
 	rm -rf $(PKG_INSTALL_DIR)
@@ -80,8 +77,8 @@ define Build/Compile
 	(cd $(PKG_BUILD_DIR); rm -f config.cache; \
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(TARGET_CFLAGS)" \
-		CPPFLAGS="-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/include" \
-		LDFLAGS="-L$(STAGING_DIR)/usr/lib -L$(STAGING_DIR)/lib" \
+		CPPFLAGS="$(TARGET_CPPFLAGS)" \
+		LDFLAGS="$(TARGET_LDFLAGS)" \
 		./configure \
 			--target=$(GNU_TARGET_NAME) \
 			--host=$(GNU_TARGET_NAME) \
@@ -145,34 +142,19 @@ define Package/libncurses/install
 endef
 
 define Build/InstallDev
-	mkdir -p $(STAGING_DIR)/usr/include
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/curses.h $(STAGING_DIR)/usr/include/
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/ncurses.h $(STAGING_DIR)/usr/include/
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/ncurses_dll.h $(STAGING_DIR)/usr/include/
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/menu.h $(STAGING_DIR)/usr/include/
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/panel.h $(STAGING_DIR)/usr/include/
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/term{,cap}.h $(STAGING_DIR)/usr/include/
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/unctrl.h $(STAGING_DIR)/usr/include/
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/form.h $(STAGING_DIR)/usr/include/
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/eti.h $(STAGING_DIR)/usr/include/
-	mkdir -p $(STAGING_DIR)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libcurses.so $(STAGING_DIR)/usr/lib/
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/lib{ncurses,panel,menu,form}.{a,so*} $(STAGING_DIR)/usr/lib/
-endef
-
-define Build/UninstallDev
-	rm -rf \
-		$(STAGING_DIR)/usr/include/curses.h \
-		$(STAGING_DIR)/usr/include/ncurses.h \
-		$(STAGING_DIR)/usr/include/ncurses_dll.h \
-		$(STAGING_DIR)/usr/include/menu.h \
-		$(STAGING_DIR)/usr/include/panel.h \
-		$(STAGING_DIR)/usr/include/term{,cap}.h \
-		$(STAGING_DIR)/usr/include/unctrl.h \
-		$(STAGING_DIR)/usr/include/form.h \
-		$(STAGING_DIR)/usr/include/eti.h \
-		$(STAGING_DIR)/usr/lib/libcurses.so \
-		$(STAGING_DIR)/usr/lib/lib{ncurses,panel,menu,form}.{a,so*}
+	mkdir -p $(1)/usr/include
+	$(CP) $(PKG_INSTALL_DIR)/usr/include/curses.h $(1)/usr/include/
+	$(CP) $(PKG_INSTALL_DIR)/usr/include/ncurses.h $(1)/usr/include/
+	$(CP) $(PKG_INSTALL_DIR)/usr/include/ncurses_dll.h $(1)/usr/include/
+	$(CP) $(PKG_INSTALL_DIR)/usr/include/menu.h $(1)/usr/include/
+	$(CP) $(PKG_INSTALL_DIR)/usr/include/panel.h $(1)/usr/include/
+	$(CP) $(PKG_INSTALL_DIR)/usr/include/term{,cap}.h $(1)/usr/include/
+	$(CP) $(PKG_INSTALL_DIR)/usr/include/unctrl.h $(1)/usr/include/
+	$(CP) $(PKG_INSTALL_DIR)/usr/include/form.h $(1)/usr/include/
+	$(CP) $(PKG_INSTALL_DIR)/usr/include/eti.h $(1)/usr/include/
+	mkdir -p $(1)/usr/lib
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libcurses.so $(1)/usr/lib/
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/lib{ncurses,panel,menu,form}.{a,so*} $(1)/usr/lib/
 endef
 
 $(eval $(call BuildPackage,libncurses))

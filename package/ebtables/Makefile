@@ -1,20 +1,20 @@
-# 
-# Copyright (C) 2006 OpenWrt.org
+#
+# Copyright (C) 2006-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 8682 2007-09-07 20:57:08Z nbd $
+# $Id: Makefile 12842 2008-10-03 18:33:48Z agb $
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=ebtables
-PKG_VERSION:=2.0.8-rc2
+PKG_VERSION:=2.0.8-2
 PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-v$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=@SF/ebtables
-PKG_MD5SUM:=f07111fcc1966be669278433c35dcc28
+PKG_MD5SUM:=66bcbcb2dcf3b981ad4e86e1720e796e
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/ebtables-v$(PKG_VERSION)
 
@@ -23,12 +23,30 @@ include $(INCLUDE_DIR)/package.mk
 define Package/ebtables
   SECTION:=net
   CATEGORY:=Network
+  DEPENDS:=+kmod-ebtables
   TITLE:=Ethernet bridge firewall administration utility
   URL:=http://ebtables.sourceforge.net/
 endef
 
+define Package/ebtables-utils
+  $(call Package/ebtables)
+  TITLE:=ebtables save/restore utilities
+endef
+
+define Package/ebtables/description
+	The ebtables program is a filtering tool for a bridging firewall. The
+	filtering is focussed on the Link Layer Ethernet frame fields. Apart
+	from filtering, it also gives the ability to alter the Ethernet MAC
+	addresses and implement a brouter.
+endef
+
+define Package/ebtables-utils/description
+	$(call Package/ebtables/description)
+endef
+
 MAKE_FLAGS += \
-	CFLAGS="$(TARGET_CFLAGS)"
+	CFLAGS="$(TARGET_CFLAGS)" \
+	LIBDIR="/usr/lib/ebtables"
 
 define Package/ebtables/install
 	$(INSTALL_DIR) $(1)/etc
@@ -38,8 +56,13 @@ define Package/ebtables/install
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/extensions/*.so $(1)/usr/lib/ebtables/
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/ebtables $(1)/usr/sbin/
+endef
+
+define Package/ebtables-utils/install
+	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/ebtables-save $(1)/usr/sbin/
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/ebtables-restore $(1)/usr/sbin/
 endef
 
 $(eval $(call BuildPackage,ebtables))
+$(eval $(call BuildPackage,ebtables-utils))

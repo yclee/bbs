@@ -3,6 +3,7 @@
 # Copyright (C) 2006 Fokus Fraunhofer <carsten.tittel@fokus.fraunhofer.de>
 
 alias debug=${DEBUG:-:}
+alias mount='busybox mount'
 
 # newline
 N="
@@ -10,6 +11,8 @@ N="
 
 _C=0
 NO_EXPORT=1
+LOAD_STATE=1
+LIST_SEP=" "
 
 hotplug_dev() {
 	env -i ACTION=$1 INTERFACE=$2 /sbin/hotplug-call net
@@ -23,11 +26,45 @@ append() {
 	eval "export ${NO_EXPORT:+-n} -- \"$var=\${$var:+\${$var}\${value:+\$sep}}\$value\""
 }
 
+list_contains() {
+	local var="$1"
+	local str="$2"
+	local val
+
+	eval "val=\" \${$var} \""
+	[ "${val%% $str *}" != "$val" ]
+}
+
+list_remove() {
+	local var="$1"
+	local remove="$2"
+	local val
+
+	eval "val=\" \${$var} \""
+	val1="${val%% $remove *}"
+	[ "$val1" = "$val" ] && return
+	val2="${val##* $remove }"
+	[ "$val2" = "$val" ] && return
+	val="${val1## } ${val2%% }"
+	val="${val%% }"
+	eval "export ${NO_EXPORT:+-n} -- \"$var=\$val\""
+}
+
+config_load() {
+	[ -n "$IPKG_INSTROOT" ] && return 0
+	uci_load "$@"
+}
+
 reset_cb() {
 	config_cb() { return 0; }
 	option_cb() { return 0; }
+	list_cb() { return 0; }
 }
 reset_cb
+
+package() {
+	return 0
+}
 
 config () {
 	local cfgtype="$1"
@@ -44,9 +81,22 @@ config () {
 option () {
 	local varname="$1"; shift
 	local value="$*"
-	
+
 	export ${NO_EXPORT:+-n} "CONFIG_${CONFIG_SECTION}_${varname}=$value"
 	[ -n "$NO_CALLBACK" ] || option_cb "$varname" "$*"
+}
+
+list() {
+	local varname="$1"; shift
+	local value="$*"
+	local len
+
+	config_get len "$CONFIG_SECTION" "${varname}_LENGTH" 
+	len="$((${len:-0} + 1))"
+	config_set "$CONFIG_SECTION" "${varname}_ITEM$len" "$value"
+	config_set "$CONFIG_SECTION" "${varname}_LENGTH" "$len"
+	append "CONFIG_${CONFIG_SECTION}_${varname}" "$value" "$LIST_SEP"
+	list_cb "$varname" "$*"
 }
 
 config_rename() {
@@ -74,45 +124,14 @@ config_unset() {
 config_clear() {
 	local SECTION="$1"
 	local oldvar
-	
-	export ${NO_EXPORT:+-n} CONFIG_SECTIONS="$(echo " $CONFIG_SECTIONS " | sed -e "s, $OLD , ,")"
+
+	list_remove CONFIG_SECTIONS "$SECTION"
 	export ${NO_EXPORT:+-n} CONFIG_SECTIONS="${SECTION:+$CONFIG_SECTIONS}"
 
 	for oldvar in `set | grep ^CONFIG_${SECTION:+${SECTION}_} | \
 		sed -e 's/\(.*\)=.*$/\1/'` ; do 
 		unset $oldvar 
 	done
-}
-
-config_load() {
-	local cfg
-	local uci
-	local PACKAGE="$1"
-
-	case "$PACKAGE" in
-		/*)	cfg="$PACKAGE"
-			uci=""
-		;;
-		*)	cfg="$UCI_ROOT/etc/config/$PACKAGE"
-			uci="/tmp/.uci/${PACKAGE}"
-		;;
-	esac
-
-	[ -e "$cfg" ] || cfg=""
-	[ -e "$uci" ] || uci=""
-
-	# no config
-	[ -z "$cfg" -a -z "$uci" ] && return 1
-
-	_C=0
-	export ${NO_EXPORT:+-n} CONFIG_SECTIONS=
-	export ${NO_EXPORT:+-n} CONFIG_NUM_SECTIONS=0
-	export ${NO_EXPORT:+-n} CONFIG_SECTION=
-
-	${cfg:+. "$cfg"}
-	${uci:+. "$uci"}
-	
-	${CONFIG_SECTION:+config_cb}
 }
 
 config_get() {
@@ -127,9 +146,9 @@ config_get_bool() {
 	local _tmp
 	config_get "_tmp" "$2" "$3"
 	case "$_tmp" in
-		1|on|enabled) export ${NO_EXPORT:+-n} "$1=1";;
-		0|off|disabled) export ${NO_EXPORT:+-n} "$1=0";;
-		*) eval "$1=${4:-0}";;
+		1|on|true|enabled) export ${NO_EXPORT:+-n} "$1=1";;
+		0|off|false|disabled) export ${NO_EXPORT:+-n} "$1=0";;
+		*) eval "$1=$4";;
 	esac
 }
 
@@ -156,6 +175,24 @@ config_foreach() {
 		config_get cfgtype "$section" TYPE
 		[ -n "$type" -a "x$cfgtype" != "x$type" ] && continue
 		eval "$function \"\$section\" \"\$@\""
+	done
+}
+
+config_list_foreach() {
+	[ "$#" -ge 3 ] || return 0
+	local section="$1"; shift
+	local option="$1"; shift
+	local function="$1"; shift
+	local val
+	local len
+	local c=1
+
+	config_get len "${section}" "${option}_LENGTH"
+	[ -z "$len" ] && return 0
+	while [ $c -le "$len" ]; do
+		config_get val "${section}" "${option}_ITEM$c"
+		eval "$function \"\$val\" \"$@\""
+		c="$(($c + 1))"
 	done
 }
 
@@ -217,3 +254,16 @@ jffs2_mark_erase() {
 	}
 	echo -e "\xde\xad\xc0\xde" | mtd -qq write - "$1"
 }
+
+uci_apply_defaults() {(
+	cd /etc/uci-defaults || return 0
+	files="$(ls)"
+	[ -z "$files" ] && return 0
+	mkdir -p /tmp/.uci
+	for file in $files; do
+		( . "./$(basename $file)" ) && rm -f "$file"
+	done
+	uci commit
+)}
+
+[ -z "$IPKG_INSTROOT" -a -f /lib/config/uci.sh ] && . /lib/config/uci.sh

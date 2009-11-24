@@ -1,6 +1,7 @@
-diff -Nur linux.old/arch/mips/kernel/mips_ksyms.c linux.dev/arch/mips/kernel/mips_ksyms.c
---- linux.old/arch/mips/kernel/mips_ksyms.c	2004-02-18 14:36:30.000000000 +0100
-+++ linux.dev/arch/mips/kernel/mips_ksyms.c	2005-10-24 14:21:53.702396250 +0200
+Index: linux-2.4.35.4/arch/mips/kernel/mips_ksyms.c
+===================================================================
+--- linux-2.4.35.4.orig/arch/mips/kernel/mips_ksyms.c
++++ linux-2.4.35.4/arch/mips/kernel/mips_ksyms.c
 @@ -30,6 +30,10 @@
  #include <asm/floppy.h>
  #endif
@@ -12,7 +13,7 @@ diff -Nur linux.old/arch/mips/kernel/mips_ksyms.c linux.dev/arch/mips/kernel/mip
  extern void *__bzero(void *__s, size_t __count);
  extern long __strncpy_from_user_nocheck_asm(char *__to,
                                              const char *__from, long __len);
-@@ -78,6 +82,13 @@
+@@ -78,6 +82,13 @@ EXPORT_SYMBOL_NOVERS(__strnlen_user_noch
  EXPORT_SYMBOL_NOVERS(__strnlen_user_asm);
  
  
@@ -26,10 +27,11 @@ diff -Nur linux.old/arch/mips/kernel/mips_ksyms.c linux.dev/arch/mips/kernel/mip
  /* Networking helper routines. */
  EXPORT_SYMBOL(csum_partial_copy);
  
-diff -Nur linux.old/arch/mips/lib/Makefile linux.dev/arch/mips/lib/Makefile
---- linux.old/arch/mips/lib/Makefile	2004-02-18 14:36:30.000000000 +0100
-+++ linux.dev/arch/mips/lib/Makefile	2005-10-24 14:21:53.774400750 +0200
-@@ -9,7 +9,8 @@
+Index: linux-2.4.35.4/arch/mips/lib/Makefile
+===================================================================
+--- linux-2.4.35.4.orig/arch/mips/lib/Makefile
++++ linux-2.4.35.4/arch/mips/lib/Makefile
+@@ -9,7 +9,8 @@ L_TARGET = lib.a
  obj-y				+= csum_partial.o csum_partial_copy.o \
  				   promlib.o rtc-std.o rtc-no.o memcpy.o \
  				   memset.o watch.o strlen_user.o \
@@ -39,9 +41,10 @@ diff -Nur linux.old/arch/mips/lib/Makefile linux.dev/arch/mips/lib/Makefile
  
  export-objs			:= rtc-std.o rtc-no.o
  
-diff -Nur linux.old/arch/mips/lib/ashldi3.c linux.dev/arch/mips/lib/ashldi3.c
---- linux.old/arch/mips/lib/ashldi3.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux.dev/arch/mips/lib/ashldi3.c	2005-10-24 14:21:53.774400750 +0200
+Index: linux-2.4.35.4/arch/mips/lib/ashldi3.c
+===================================================================
+--- /dev/null
++++ linux-2.4.35.4/arch/mips/lib/ashldi3.c
 @@ -0,0 +1,62 @@
 +/* ashrdi3.c extracted from gcc-2.95.2/libgcc2.c which is: */
 +/* Copyright (C) 1989, 92-98, 1999 Free Software Foundation, Inc.
@@ -105,9 +108,10 @@ diff -Nur linux.old/arch/mips/lib/ashldi3.c linux.dev/arch/mips/lib/ashldi3.c
 +
 +  return w.ll;
 +}
-diff -Nur linux.old/arch/mips/lib/ashrdi3.c linux.dev/arch/mips/lib/ashrdi3.c
---- linux.old/arch/mips/lib/ashrdi3.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux.dev/arch/mips/lib/ashrdi3.c	2005-10-24 14:21:53.774400750 +0200
+Index: linux-2.4.35.4/arch/mips/lib/ashrdi3.c
+===================================================================
+--- /dev/null
++++ linux-2.4.35.4/arch/mips/lib/ashrdi3.c
 @@ -0,0 +1,63 @@
 +/* ashrdi3.c extracted from gcc-2.7.2/libgcc2.c which is: */
 +/* Copyright (C) 1989, 1992, 1993, 1994, 1995 Free Software Foundation, Inc.
@@ -172,9 +176,10 @@ diff -Nur linux.old/arch/mips/lib/ashrdi3.c linux.dev/arch/mips/lib/ashrdi3.c
 +
 +  return w.ll;
 +}
-diff -Nur linux.old/arch/mips/lib/lshrdi3.c linux.dev/arch/mips/lib/lshrdi3.c
---- linux.old/arch/mips/lib/lshrdi3.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux.dev/arch/mips/lib/lshrdi3.c	2005-10-24 14:21:53.774400750 +0200
+Index: linux-2.4.35.4/arch/mips/lib/lshrdi3.c
+===================================================================
+--- /dev/null
++++ linux-2.4.35.4/arch/mips/lib/lshrdi3.c
 @@ -0,0 +1,62 @@
 +/* lshrdi3.c extracted from gcc-2.7.2/libgcc2.c which is: */
 +/* Copyright (C) 1989, 1992, 1993, 1994, 1995 Free Software Foundation, Inc.
@@ -238,9 +243,10 @@ diff -Nur linux.old/arch/mips/lib/lshrdi3.c linux.dev/arch/mips/lib/lshrdi3.c
 +
 +  return w.ll;
 +}
-diff -Nur linux.old/arch/mips/lib/muldi3.c linux.dev/arch/mips/lib/muldi3.c
---- linux.old/arch/mips/lib/muldi3.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux.dev/arch/mips/lib/muldi3.c	2005-10-24 14:21:53.774400750 +0200
+Index: linux-2.4.35.4/arch/mips/lib/muldi3.c
+===================================================================
+--- /dev/null
++++ linux-2.4.35.4/arch/mips/lib/muldi3.c
 @@ -0,0 +1,63 @@
 +/* muldi3.c extracted from gcc-2.7.2.3/libgcc2.c and 
 +			   gcc-2.7.2.3/longlong.h which is: */
@@ -305,9 +311,10 @@ diff -Nur linux.old/arch/mips/lib/muldi3.c linux.dev/arch/mips/lib/muldi3.c
 +
 +  return w.ll;
 +}
-diff -Nur linux.old/fs/cifs/cifsfs.c linux.dev/fs/cifs/cifsfs.c
---- linux.old/fs/cifs/cifsfs.c	2005-10-24 13:48:27.599659000 +0200
-+++ linux.dev/fs/cifs/cifsfs.c	2005-10-24 14:25:06.526447000 +0200
+Index: linux-2.4.35.4/fs/cifs/cifsfs.c
+===================================================================
+--- linux-2.4.35.4.orig/fs/cifs/cifsfs.c
++++ linux-2.4.35.4/fs/cifs/cifsfs.c
 @@ -50,8 +50,6 @@
  static struct quotactl_ops cifs_quotactl_ops;
  #endif
@@ -317,10 +324,11 @@ diff -Nur linux.old/fs/cifs/cifsfs.c linux.dev/fs/cifs/cifsfs.c
  int cifsFYI = 0;
  int cifsERROR = 1;
  int traceSMB = 0;
-diff -Nur linux.old/include/asm-mips/uaccess.h linux.dev/include/asm-mips/uaccess.h
---- linux.old/include/asm-mips/uaccess.h	2005-01-19 15:10:12.000000000 +0100
-+++ linux.dev/include/asm-mips/uaccess.h	2005-10-24 14:11:48.563214250 +0200
-@@ -149,7 +149,7 @@
+Index: linux-2.4.35.4/include/asm-mips/uaccess.h
+===================================================================
+--- linux-2.4.35.4.orig/include/asm-mips/uaccess.h
++++ linux-2.4.35.4/include/asm-mips/uaccess.h
+@@ -149,7 +149,7 @@ static inline int verify_area(int type, 
   * Returns zero on success, or -EFAULT on error.
   */
  #define put_user(x,ptr)	\
@@ -329,7 +337,7 @@ diff -Nur linux.old/include/asm-mips/uaccess.h linux.dev/include/asm-mips/uacces
  
  /*
   * get_user: - Get a simple variable from user space.
-@@ -169,7 +169,7 @@
+@@ -169,7 +169,7 @@ static inline int verify_area(int type, 
   * On error, the variable @x is set to zero.
   */
  #define get_user(x,ptr) \
@@ -338,7 +346,7 @@ diff -Nur linux.old/include/asm-mips/uaccess.h linux.dev/include/asm-mips/uacces
  
  /*
   * __put_user: - Write a simple value into user space, with less checking.
-@@ -191,7 +191,7 @@
+@@ -191,7 +191,7 @@ static inline int verify_area(int type, 
   * Returns zero on success, or -EFAULT on error.
   */
  #define __put_user(x,ptr) \
@@ -347,7 +355,7 @@ diff -Nur linux.old/include/asm-mips/uaccess.h linux.dev/include/asm-mips/uacces
  
  /*
   * __get_user: - Get a simple variable from user space, with less checking.
-@@ -214,7 +214,7 @@
+@@ -214,7 +214,7 @@ static inline int verify_area(int type, 
   * On error, the variable @x is set to zero.
   */
  #define __get_user(x,ptr) \
@@ -356,7 +364,7 @@ diff -Nur linux.old/include/asm-mips/uaccess.h linux.dev/include/asm-mips/uacces
  
  struct __large_struct { unsigned long buf[100]; };
  #define __m(x) (*(struct __large_struct *)(x))
-@@ -232,7 +232,7 @@
+@@ -232,7 +232,7 @@ struct __large_struct { unsigned long bu
  #define __get_user_nocheck(x,ptr,size)					\
  ({									\
  	long __gu_err = 0;						\

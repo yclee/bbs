@@ -1,25 +1,9 @@
 #!/bin/sh
 # Copyright (C) 2006 OpenWrt.org
 
-export PATH=/bin:/sbin:/usr/bin:/usr/sbin
-mount none /proc -t proc
+INITRAMFS=1
 
-if grep devfs /proc/filesystems > /dev/null; then
-	mount none /dev -t devfs
-else
-	mount -t sysfs none /sys
-	mount -t tmpfs tmpfs /dev -o size=512K
-	mknod /dev/console c 5 1
-	mkdir /dev/pts
-	mkdir /dev/shm
-	/sbin/hotplug2 --no-persistent --coldplug --max_children 1
-fi
-
-mount none /dev/pts -t devpts
-
-# the root mount point can come from the kernel command line
-# or it can be overridden in the preinit.arch file
-[ -f /etc/preinit.arch ] && . /etc/preinit.arch
+. /etc/preinit
 
 # if we have no root parameter, just go to running from ramfs
 [ -z $rootfs ] && {
@@ -90,4 +74,5 @@ mount -o move /dev/pts /mnt/dev/pts
 mount -o move /tmp /mnt/tmp
 mount -o move /sys /mnt/sys
 mount none /tmp -t tmpfs
+killall -q hotplug2
 exec switch_root -c /dev/console /mnt /sbin/init

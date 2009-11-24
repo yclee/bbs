@@ -1,86 +1,60 @@
-# 
-# Copyright (C) 2006 OpenWrt.org
+#
+# Copyright (C) 2006-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 8181 2007-07-26 15:28:59Z nbd $
+# $Id: Makefile 12482 2008-09-02 00:23:59Z lars $
 
-include $(TOPDIR)/rules.mk
-include $(TOPDIR)/.config
-include $(INCLUDE_DIR)/host.mk
+curdir:=package
 
-all: compile
-
-include $(TMP_DIR)/.packagedeps
-
-PREREQ_PACKAGES:=$(patsubst %,%-prereq,$(prereq-y) $(prereq-m))
-DOWNLOAD_PACKAGES:=$(patsubst %,%-download,$(package-y) $(package-m))
-COMPILE_PACKAGES:=$(patsubst %,%-compile,$(package-y) $(package-m))
-INSTALL_PACKAGES:=$(patsubst %,%-install,$(package-y))
-
-$(STAMP_DIR) $(TARGET_DIR):
-	mkdir -p $@
-
-ifeq ($(QUIET),1)
-%-compile %-install: FORCE
-	$(MAKE) -j1 -C $* $(patsubst $*-%,%,$@) || { $(call MESSAGE, "*** $* $(patsubst $*-%,%,$@) failed"); false; }
-
-%-prepare %-prereq %-download %-clean: FORCE
+-include $(TMP_DIR)/.packagedeps
+$(curdir)/builddirs:=$(sort $(package-) $(package-y) $(package-m))
+ifeq ($(SDK),1)
+  $(curdir)/builddirs-install:=.
 else
-%-prepare %-prereq %-download %-clean %-compile %-install: FORCE
+  $(curdir)/builddirs-default:=. $(sort $(package-y) $(package-m))
+  $(curdir)/builddirs-prereq:=. $(sort $(prereq-y) $(prereq-m))
+  $(curdir)/builddirs-install:=. $(sort $(package-y))
 endif
-	$(MAKE) -j1 -C $* $(patsubst $*-%,%,$@)
+ifneq ($(IGNORE_ERRORS),)
+  $(curdir)/builddirs-ignore-compile:= $(if $(filter m y, $(IGNORE_ERRORS)),$(foreach m,$(IGNORE_ERRORS),$(package-$(m))),$(package-m))
+endif
 
-%-refresh %-update:
-	-$(MAKE) -C $* $(patsubst $*-%,%,$@)
-	
-%-autorefresh:
-	-$(MAKE) -C $* clean refresh QUILT=1
+$(curdir)/install:=$(curdir)/install-cleanup
 
+$(curdir)/cleanup: $(TMP_DIR)/.build
+	rm -rf $(TARGET_DIR)
 
-# .IGNORE: $(COMPILE_PACKAGES) 
-
-$(TMP_DIR)/.packagedeps: $(TMP_DIR)/.packageinfo
-	@$(TOPDIR)/scripts/metadata.pl package_mk < $< > $@ || rm -f $@
-
-preconfig:
-clean: $(patsubst %,%-clean,$(package-) $(package-y) $(package-m))
-prereq: $(PREREQ_PACKAGES)
-download: $(DOWNLOAD_PACKAGES)
-compile: $(COMPILE_PACKAGES)
-refresh: $(patsubst %,%-autorefresh,$(package-y) $(package-m) $(package-))
-
-install-targets: $(INSTALL_PACKAGES)
-install:
-	rm -rf $(BUILD_DIR)/root
-	$(MAKE) install-targets
-	$(MAKE) preconfig
+$(curdir)/rootfs-prepare: $(TMP_DIR)/.build
+	@-$(MAKE) package/preconfig
 	@if [ -d $(TOPDIR)/files ]; then \
-		$(CP) $(TOPDIR)/files/. $(BUILD_DIR)/root; \
+		$(CP) $(TOPDIR)/files/. $(TARGET_DIR); \
 	fi
-	@mkdir -p $(BUILD_DIR)/root/etc/rc.d
+	@mkdir -p $(TARGET_DIR)/etc/rc.d
 	@( \
-		cd $(BUILD_DIR)/root; \
+		cd $(TARGET_DIR); \
 		for script in ./etc/init.d/*; do \
 			grep '#!/bin/sh /etc/rc.common' $$script >/dev/null || continue; \
-			IPKG_INSTROOT=$(BUILD_DIR)/root $(which bash) ./etc/rc.common $$script enable; \
+			IPKG_INSTROOT=$(TARGET_DIR) $$(which bash) ./etc/rc.common $$script enable; \
 		done || true \
 	)
-	@-find $(BUILD_DIR)/root -name CVS   | $(XARGS) rm -rf
-	@-find $(BUILD_DIR)/root -name .svn  | $(XARGS) rm -rf
-	@-find $(BUILD_DIR)/root -name '.#*' | $(XARGS) rm -f
+	@-find $(TARGET_DIR) -name CVS   | $(XARGS) rm -rf
+	@-find $(TARGET_DIR) -name .svn  | $(XARGS) rm -rf
+	@-find $(TARGET_DIR) -name '.#*' | $(XARGS) rm -f
+	$(if $(CONFIG_CLEAN_IPKG),rm -rf $(TARGET_DIR)/usr/lib/ipkg)
 
-index: $(PACKAGE_DIR)/Packages
+$(curdir)/index: FORCE
+	@(cd $(PACKAGE_DIR); $(SCRIPT_DIR)/ipkg-make-index.sh . > Packages && \
+		gzip -9c Packages > Packages.gz \
+	)
 
-$(PACKAGE_DIR)/Packages: $(PACKAGE_DIR)/*.ipk
-	(cd $(PACKAGE_DIR); $(SCRIPT_DIR)/ipkg-make-index.sh . > Packages)
+$(curdir)/flags-install:= -j1
 
-symlinks:
-	../scripts/feeds.sh $(CONFIG_SOURCE_FEEDS) $(CONFIG_SOURCE_FEEDS_REV)
+$(eval $(call stampfile,$(curdir),package,prereq,.config))
+$(eval $(call stampfile,$(curdir),package,cleanup,$(TMP_DIR)/.build))
+$(eval $(call stampfile,$(curdir),package,compile,$(TMP_DIR)/.build))
+$(eval $(call stampfile,$(curdir),package,install,$(TMP_DIR)/.build))
+$(eval $(call stampfile,$(curdir),package,rootfs-prepare,$(TMP_DIR)/.build))
 
-ifeq ($(MAKECMDGOALS),compile)
-MAKEFLAGS:=$(MAKEFLAGS) -j$(CONFIG_JLEVEL)
-else
-.NOTPARALLEL:
-endif
+$(eval $(call subdir,$(curdir)))

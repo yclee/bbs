@@ -1,8 +1,6 @@
-Index: madwifi-ng-r2568-20070710/net80211/ieee80211_crypto_ccmp.c
-===================================================================
---- madwifi-ng-r2568-20070710.orig/net80211/ieee80211_crypto_ccmp.c	2007-07-23 01:48:37.830135985 +0200
-+++ madwifi-ng-r2568-20070710/net80211/ieee80211_crypto_ccmp.c	2007-07-23 01:48:42.870423216 +0200
-@@ -475,6 +475,9 @@
+--- a/net80211/ieee80211_crypto_ccmp.c
++++ b/net80211/ieee80211_crypto_ccmp.c
+@@ -475,6 +475,9 @@ ccmp_encrypt(struct ieee80211_key *key, 
  	uint8_t *mic, *pos;
  	u_int space;
  
@@ -12,7 +10,7 @@ Index: madwifi-ng-r2568-20070710/net80211/ieee80211_crypto_ccmp.c
  	ctx->cc_vap->iv_stats.is_crypto_ccmp++;
  
  	skb = skb0;
-@@ -589,6 +592,9 @@
+@@ -589,6 +592,9 @@ ccmp_decrypt(struct ieee80211_key *key, 
  	uint8_t *pos, *mic;
  	u_int space;
  

@@ -65,25 +65,25 @@ There are four key directories in the base:
 
 \texttt{tools} and \texttt{toolchain} refer to common tools which will be
 used to build the firmware image, the compiler, and the C library.
-The result of this is three new directories, \texttt{tool\_build}, which is a temporary
-directory for building the target independent tools, \texttt{toolchain\_build\_\textit{<arch>}}
+The result of this is three new directories, \texttt{build\_dir/host}, which is a temporary
+directory for building the target independent tools, \texttt{build\_dir/toolchain-\textit{<arch>}*}
 which is used for building the toolchain for a specific architecture, and
-\texttt{staging\_dir\_\textit{<arch>}} where the resulting toolchain is installed.
+\texttt{staging\_dir/toolchain-\textit{<arch>}*} where the resulting toolchain is installed.
 You will not need to do anything with the toolchain directory unless you intend to
 add a new version of one of the components above.
 
 \begin{itemize}
-    \item \texttt{tool\_build}
-    \item \texttt{toolchain\_build\_\textit{<arch>}}
+    \item \texttt{build\_dir/host}
+    \item \texttt{build\_dir/toolchain-\textit{<arch>}*}
 \end{itemize}
 
 \texttt{package} is for exactly that -- packages. In an OpenWrt firmware, almost everything
 is an \texttt{.ipk}, a software package which can be added to the firmware to provide new
 features or removed to save space. Note that packages are also maintained outside of the main
-trunk and can be obtained from subversion at the following location:
+trunk and can be obtained from subversion using the package feeds system:
 
 \begin{Verbatim}
-$ svn checkout https://svn.openwrt.org/openwrt/packages packages
+$ ./scripts/feeds update
 \end{Verbatim}
 
 Those packages can be used to extend the functionality of the build system and need to be
@@ -91,15 +91,17 @@ symlinked into the main trunk. Once you do that, the packages will show up in th
 configuration. From kamikaze you would do something like this:
 
 \begin{Verbatim}
-$ ls
-kamikaze  packages
-$ ln -s packages/net/nmap kamikaze/package/nmap
+$ ./scripts/feeds search nmap
+Search results in feed 'packages':
+nmap       Network exploration and/or security auditing utility
+
+$ ./scripts/feeds install nmap
 \end{Verbatim}
 
 To include all packages, issue the following command:
 
 \begin{Verbatim}
-$ ln -s packages/*/* kamikaze/package/
+$ make package/symlinks
 \end{Verbatim}
 
 \texttt{target} refers to the embedded platform, this contains items which are specific to
@@ -108,12 +110,12 @@ directory which is broken down by platform \textit{<arch>} and contains the patc
 kernel, profile config, for a particular platform. There's also the "\texttt{target/image}" directory
 which describes how to package a firmware for a specific platform.
 
-Both the target and package steps will use the directory "\texttt{build\_\textit{<arch>}}"
+Both the target and package steps will use the directory "\texttt{build\_dir/\textit{<arch>}}"
 as a temporary directory for compiling. Additionally, anything downloaded by the toolchain,
 target or package steps will be placed in the "\texttt{dl}" directory.
 
 \begin{itemize}
-    \item \texttt{build\_\textit{<arch>}}
+    \item \texttt{build\_dir/\textit{<arch>}}
     \item \texttt{dl}
 \end{itemize}
 
@@ -171,7 +173,7 @@ of noise caused by the compile output. To see the full output, run the command
 "\texttt{make V=99}".
 
 During the build process, buildroot will download all sources to the "\texttt{dl}"
-directory and will start patching and compiling them in the "\texttt{build\_\textit{<arch>}}"
+directory and will start patching and compiling them in the "\texttt{build\_dir/\textit{<arch>}}"
 directory. When finished, the resulting firmware will be in the "\texttt{bin}" directory
 and packages will be in the "\texttt{bin/packages}" directory.
 
@@ -305,6 +307,9 @@ directly as the Nth argument to \texttt{BuildPackage}.
             Which packages must be built/installed before this package. To reference a dependency defined in the
 			same Makefile, use \textit{<dependency name>}. If defined as an external package, use 
 			\textit{+<dependency name>}. For a kernel version dependency use: \textit{@LINUX\_2\_<minor version>}
+		\item \texttt{BUILDONLY} (optional) \\
+			Set this option to 1 if you do NOT want your package to appear in menuconfig.
+			This is useful for packages which are only used as build dependencies.
     \end{itemize}
 
 \textbf{\texttt{Package/\textit{<name>}/conffiles} (optional):} \\
@@ -341,6 +346,19 @@ directly as the Nth argument to \texttt{BuildPackage}.
 	 \item \texttt{MAKE\_VARS} \\
 	   Contains all environment variables that are passed to the make command
    \end{itemize}
+
+\textbf{\texttt{Build/InstallDev} (optional):} \\
+	If your package provides a library that needs to be made available to other packages,
+	you can use the \texttt{Build/InstallDev} template to copy it into the staging directory
+	which is used to collect all files that other packages might depend on at build time.
+	When it is called by the build system, two parameters are passed to it. \texttt{\$(1)} points to
+	the regular staging dir, typically \texttt{staging\_dir/\textit{ARCH}}, while \texttt{\$(2)} points
+	to \texttt{staging\_dir/host}. The host staging dir is only used for binaries, which are
+	to be executed or linked against on the host and its \texttt{bin/} subdirectory is included
+	in the \texttt{PATH} which is passed down to the build system processes.
+	Please use \texttt{\$(1)} and \texttt{\$(2)} here instead of the build system variables
+	\texttt{\$(STAGING\_DIR)} and \texttt{\$(STAGING\_DIR\_HOST)}, because the build system behavior
+	when staging libraries might change in the future to include automatic uninstallation.
 
 \textbf{\texttt{Package/\textit{<name>}/install}:} \\
    A set of commands to copy files out of the compiled source and into the ipkg
@@ -388,8 +406,7 @@ define KernelPackage/i2c-core
   TITLE:=I2C support
   DESCRIPTION:=Kernel modules for i2c support
   SUBMENU:=$(I2CMENU)
-  KCONFIG:=$(CONFIG_I2C_CORE) \
-        $(CONFIG_I2C_DEV)
+  KCONFIG:=CONFIG_I2C_CORE CONFIG_I2C_DEV
   FILES:=$(MODULES_DIR)/kernel/drivers/i2c/*.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,i2c-core i2c-dev)
 endef
@@ -449,14 +466,14 @@ shortcuts you can take. Instead of waiting for make to get to your package, you 
 run one of the following:
 
 \begin{itemize}
-    \item \texttt{make package/\textit{<name>}-clean V=99}
-    \item \texttt{make package/\textit{<name>}-install V=99}
+    \item \texttt{make package/\textit{<name>}/clean V=99}
+    \item \texttt{make package/\textit{<name>}/install V=99}
 \end{itemize}
 
-Another nice trick is that if the source directory under \texttt{build\_\textit{<arch>}}
+Another nice trick is that if the source directory under \texttt{build\_dir/\textit{<arch>}}
 is newer than the package directory, it won't clobber it by unpacking the sources again.
 If you were working on a patch you could simply edit the sources under the
-\texttt{build\_\textit{<arch>}/\textit{<source>}} directory and run the install command above,
+\texttt{build\_dir/\textit{<arch>}/\textit{<source>}} directory and run the install command above,
 when satisfied, copy the patched sources elsewhere and diff them with the unpatched
 sources. A warning though - if you go modify anything under \texttt{package/\textit{<name>}}
 it will remove the old sources and unpack a fresh copy.
@@ -464,8 +481,65 @@ it will remove the old sources and unpack a fresh copy.
 Other useful targets include:
 
 \begin{itemize}
-    \item \texttt{make package/\textit{<name>}-prepare V=99}
-    \item \texttt{make package/\textit{<name>}-compile V=99}
-    \item \texttt{make package/\textit{<name>}-configure V=99}
+    \item \texttt{make package/\textit{<name>}/prepare V=99}
+    \item \texttt{make package/\textit{<name>}/compile V=99}
+    \item \texttt{make package/\textit{<name>}/configure V=99}
 \end{itemize}
 
+
+\subsection{Using build environments}
+OpenWrt provides a means of building images for multiple configurations
+which can use multiple targets in one single checkout. These \emph{environments}
+store a copy of the .config file generated by \texttt{make menuconfig} and the contents
+of the \texttt{./files} folder.
+The script \texttt{./scripts/env} is used to manage these environments, it uses
+\texttt{git} (which needs to be installed on your system) as backend for version control.
+
+The command 
+\begin{Verbatim}
+  ./scripts/env help
+\end{Verbatim}
+produces a short help text with a list of commands.
+
+To create a new environment named \texttt{current}, run the following command
+\begin{Verbatim}
+  ./scripts/env new current
+\end{Verbatim}
+This will move your \texttt{.config} file and \texttt{./files} (if it exists) to
+the \texttt{env/} subdirectory and create symlinks in the base folder.
+
+After running make menuconfig or changing things in files/, your current state will
+differ from what has been saved before. To show these changes, use:
+\begin{Verbatim}
+  ./scripts/env diff
+\end{Verbatim}
+
+If you want to save these changes, run:
+\begin{Verbatim}
+  ./scripts/env save
+\end{Verbatim}
+If you want to revert your changes to the previously saved copy, run:
+\begin{Verbatim}
+  ./scripts/env revert
+\end{Verbatim}
+
+If you want, you can now create a second environment using the \texttt{new} command.
+It will ask you whether you want to make it a clone of the current environment (e.g.
+for minor changes) or if you want to start with a clean version (e.g. for selecting
+a new target).
+
+To switch to a different environment (e.g. \texttt{test1}), use:
+\begin{Verbatim}
+  ./scripts/env switch test1
+\end{Verbatim}
+
+To rename the current branch to a new name (e.g. \texttt{test2}), use:
+\begin{Verbatim}
+  ./scripts/env rename test2
+\end{Verbatim}
+
+If you want to get rid of environment switching and keep everything in the base directory
+again, use:
+\begin{Verbatim}
+  ./scripts/env clear
+\end{Verbatim}

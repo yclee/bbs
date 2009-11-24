@@ -43,6 +43,18 @@ config BUSYBOX_CONFIG_KILLALL5
 	default y
 	depends on BUSYBOX_CONFIG_KILL
 
+config BUSYBOX_CONFIG_NMETER
+	bool "nmeter"
+	default n
+	help
+	  Prints selected system stats continuously, one line per update.
+
+config BUSYBOX_CONFIG_PGREP
+	bool "pgrep"
+	default y
+	help
+	  Look for processes by name.
+
 config BUSYBOX_CONFIG_PIDOF
 	bool "pidof"
 	default y
@@ -66,6 +78,12 @@ config BUSYBOX_CONFIG_FEATURE_PIDOF_OMIT
 	  The special pid %PPID can be used to name the parent process
 	  of the pidof, in other words the calling shell or shell script.
 
+config BUSYBOX_CONFIG_PKILL
+	bool "pkill"
+	default y
+	help
+	  Send signals to processes by name.
+
 config BUSYBOX_CONFIG_PS
 	bool "ps"
 	default y
@@ -74,12 +92,27 @@ config BUSYBOX_CONFIG_PS
 
 config BUSYBOX_CONFIG_FEATURE_PS_WIDE
 	bool "Enable argument for wide output (-w)"
-	default y
+	default n
 	depends on BUSYBOX_CONFIG_PS
 	help
 	  Support argument 'w' for wide output.
 	  If given once, 132 chars are printed and given more than
 	  one, the length is unlimited.
+
+config BUSYBOX_CONFIG_FEATURE_PS_TIME
+	bool "Enable time and elapsed time output"
+	default n
+	depends on BUSYBOX_CONFIG_PS && BUSYBOX_CONFIG_DESKTOP
+	help
+	  Support -o time and -o etime output specifiers.
+
+config BUSYBOX_CONFIG_FEATURE_PS_UNUSUAL_SYSTEMS
+	bool "Support Linux prior to 2.4.0 and non-ELF systems"
+	default n
+	depends on BUSYBOX_CONFIG_FEATURE_PS_TIME
+	help
+	  Include support for measuring HZ on old kernels and non-ELF systems
+	  (if you are on Linux 2.4.0+ and use ELF, you don't need this)
 
 config BUSYBOX_CONFIG_RENICE
 	bool "renice"
@@ -102,11 +135,32 @@ config BUSYBOX_CONFIG_TOP
 	  system.
 
 config BUSYBOX_CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
-	bool "Support showing CPU usage percentage (add 2k bytes)"
+	bool "Show CPU per-process usage percentage (adds 2k bytes)"
 	default y
 	depends on BUSYBOX_CONFIG_TOP
 	help
-	  Make top display CPU usage.
+	  Make top display CPU usage for each process.
+
+config BUSYBOX_CONFIG_FEATURE_TOP_CPU_GLOBAL_PERCENTS
+	bool "Show CPU global usage percentage (adds 0.5k bytes)"
+	default y
+	depends on BUSYBOX_CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
+	help
+	  Makes top display "CPU: NN% usr NN% sys..." line.
+
+config BUSYBOX_CONFIG_FEATURE_TOP_DECIMALS
+	bool "Show 1/10th of a percent in CPU/mem statistics (adds 0.3k bytes)"
+	default n
+	depends on BUSYBOX_CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
+	help
+	  Show 1/10th of a percent in CPU/mem statistics.
+
+config BUSYBOX_CONFIG_FEATURE_TOPMEM
+	bool "topmem"
+	default n
+	depends on BUSYBOX_CONFIG_TOP
+	help
+	  Enable 's' in top (gives lots of memory info)
 
 config BUSYBOX_CONFIG_UPTIME
 	bool "uptime"
@@ -115,6 +169,14 @@ config BUSYBOX_CONFIG_UPTIME
 	  uptime gives a one line display of the current time, how long
 	  the system has been running, how many users are currently logged
 	  on, and the system load averages for the past 1, 5, and 15 minutes.
+
+config BUSYBOX_CONFIG_WATCH
+	bool "watch"
+	default n
+	#huh?? select DATE
+	help
+	  watch is used to execute a program periodically, showing
+	  output to the screen.
 
 
 endmenu

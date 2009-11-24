@@ -1,5 +1,7 @@
---- linux-2.4.32.orig/drivers/net/b44.h	2006-09-19 19:56:03.000000000 +0200
-+++ linux-2.4.32/drivers/net/b44.h	2006-09-19 19:58:01.000000000 +0200
+Index: linux-2.4.35.4/drivers/net/b44.h
+===================================================================
+--- linux-2.4.35.4.orig/drivers/net/b44.h
++++ linux-2.4.35.4/drivers/net/b44.h
 @@ -122,6 +122,7 @@
  #define  RXCONFIG_FLOW		0x00000020 /* Flow Control Enable */
  #define  RXCONFIG_FLOW_ACCEPT	0x00000040 /* Accept Unicast Flow Control Frame */
@@ -8,9 +10,11 @@
  #define B44_RXMAXLEN	0x0404UL /* EMAC RX Max Packet Length */
  #define B44_TXMAXLEN	0x0408UL /* EMAC TX Max Packet Length */
  #define B44_MDIO_CTRL	0x0410UL /* EMAC MDIO Control */
---- linux-2.4.32.orig/drivers/net/b44.c	2006-09-19 19:56:03.000000000 +0200
-+++ linux-2.4.32/drivers/net/b44.c	2006-09-19 20:08:22.000000000 +0200
-@@ -1301,6 +1301,7 @@
+Index: linux-2.4.35.4/drivers/net/b44.c
+===================================================================
+--- linux-2.4.35.4.orig/drivers/net/b44.c
++++ linux-2.4.35.4/drivers/net/b44.c
+@@ -1299,6 +1299,7 @@ static int b44_set_mac_addr(struct net_d
  {
  	struct b44 *bp = dev->priv;
  	struct sockaddr *addr = p;
@@ -18,7 +22,7 @@
  
  	if (netif_running(dev))
  		return -EBUSY;
-@@ -1308,7 +1309,11 @@
+@@ -1306,7 +1307,11 @@ static int b44_set_mac_addr(struct net_d
  	memcpy(dev->dev_addr, addr->sa_data, dev->addr_len);
  
  	spin_lock_irq(&bp->lock);
@@ -31,7 +35,7 @@
  	spin_unlock_irq(&bp->lock);
  
  	return 0;
-@@ -1488,7 +1493,7 @@
+@@ -1493,7 +1498,7 @@ static void __b44_set_rx_mode(struct net
  
  	val = br32(B44_RXCONFIG);
  	val &= ~(RXCONFIG_PROMISC | RXCONFIG_ALLMULTI);

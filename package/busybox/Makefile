@@ -4,18 +4,18 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 7837 2007-07-01 18:43:55Z nbd $
+# $Id: Makefile 13536 2008-12-07 02:16:18Z rwhitby $
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=busybox
-PKG_VERSION:=1.4.2
+PKG_VERSION:=1.11.2
 PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=http://www.busybox.net/downloads \
 		http://distfiles.gentoo.org/distfiles/
-PKG_MD5SUM:=b4c61fb15642be9dde20e8493788c585
+PKG_MD5SUM:=63f11148e09fe9844fa726061414e9ac
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -37,14 +37,14 @@ define Package/busybox
 endef
 
 define Package/busybox/description
-The Swiss Army Knife of embedded Linux.
-	It slices, it dices, it makes Julian Fries.
+ The Swiss Army Knife of embedded Linux.
+ It slices, it dices, it makes Julian Fries.
 endef
 
 define Package/busybox/config
-	source "$(SOURCE)/target-config.in"
 	menu "Configuration"
 		depends on PACKAGE_busybox
+		source "$(SOURCE)/target-config.in"
 		source "$(SOURCE)/config/Config.in"
 	endmenu
 endef
@@ -55,6 +55,7 @@ define Build/Configure
 	yes '' | $(MAKE) -C $(PKG_BUILD_DIR) \
 		CC="$(TARGET_CC)" \
 		CROSS_COMPILE="$(TARGET_CROSS)" \
+		KBUILD_HAVE_NLS=no \
 		ARCH="$(ARCH)" \
 		oldconfig
 endef
@@ -63,6 +64,7 @@ define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		CC="$(TARGET_CC)" \
 		CROSS_COMPILE="$(TARGET_CROSS)" \
+		KBUILD_HAVE_NLS=no \
 		EXTRA_CFLAGS="$(TARGET_CFLAGS)" \
 		ARCH="$(ARCH)" \
 		IPKG_ARCH="$(ARCH)" \
@@ -70,7 +72,7 @@ define Build/Compile
 endef
 
 define Package/busybox/install
-	find $(PKG_BUILD_DIR) -lname "*busybox" -exec rm \{\} \;
+	$(FIND) $(PKG_BUILD_DIR) -lname "*busybox" -exec rm \{\} \;
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		CC="$(TARGET_CC)" \
 		CROSS_COMPILE="$(TARGET_CROSS)" \

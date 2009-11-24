@@ -4,13 +4,13 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 8682 2007-09-07 20:57:08Z nbd $
+# $Id: Makefile 12225 2008-08-06 22:10:29Z nbd $
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=zlib
 PKG_VERSION:=1.2.3
-PKG_RELEASE:=4
+PKG_RELEASE:=5
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=http://www.zlib.net @SF/zlib
@@ -29,7 +29,7 @@ define Build/Configure
 	(cd $(PKG_BUILD_DIR); \
 		$(TARGET_CONFIGURE_OPTS) \
 		LDSHARED="$(TARGET_CC) -shared -Wl,-soname,libz.so.1" \
-		CFLAGS="$(TARGET_CFLAGS) $(CFLAGS_LARGEFILE)" \
+		CFLAGS="$(TARGET_CFLAGS) $(FPIC) $(CFLAGS_LARGEFILE)" \
 		UNAME_S="Linux" \
 		./configure \
 			--prefix=/usr \
@@ -40,7 +40,7 @@ endef
 define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		$(TARGET_CONFIGURE_OPTS) \
-		CFLAGS="$(TARGET_CFLAGS) $(CFLAGS_LARGEFILE)" \
+		CFLAGS="$(TARGET_CFLAGS) -fPIC $(CFLAGS_LARGEFILE)" \
 		libz.a libz.so
 	mkdir -p $(PKG_INSTALL_DIR)
 	$(MAKE) -C $(PKG_BUILD_DIR) \
@@ -49,17 +49,12 @@ define Build/Compile
 endef
 
 define Build/InstallDev
-	mkdir -p $(STAGING_DIR)/usr/include
+	mkdir -p $(1)/usr/include
 	$(CP)	$(PKG_INSTALL_DIR)/usr/include/z{conf,lib}.h \
-		$(STAGING_DIR)/usr/include/
-	mkdir -p $(STAGING_DIR)/usr/lib
+		$(1)/usr/include/
+	mkdir -p $(1)/usr/lib
 	$(CP)	$(PKG_INSTALL_DIR)/usr/lib/libz.{a,so*} \
-		$(STAGING_DIR)/usr/lib/
-endef
-	
-define Build/UninstallDev
-	rm -rf	$(STAGING_DIR)/usr/include/z{conf,lib}.h \
-		$(STAGING_DIR)/usr/lib/libz.{a,so*}
+		$(1)/usr/lib/
 endef
 
 # libz.so is needed for openssl (zlib-dynamic)

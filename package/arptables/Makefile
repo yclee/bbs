@@ -1,19 +1,19 @@
-# Copyright (C) 2006 OpenWrt.org
+# Copyright (C) 2006-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 6582 2007-03-16 20:21:39Z nbd $
+# $Id: Makefile 11553 2008-06-22 18:40:30Z agb $
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=arptables
-PKG_VERSION:=0.0.3-2
+PKG_VERSION:=0.0.3-3
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-v$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=@SF/ebtables
-PKG_MD5SUM:=283d19292bd99913dc3a42842826c286
+PKG_MD5SUM:=3f4a8b62920a46d746ab892be7de088f
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-v$(PKG_VERSION)
 

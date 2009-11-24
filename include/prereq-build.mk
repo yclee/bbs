@@ -20,11 +20,7 @@ $(eval $(call Require,non-root, \
 
 # Required for the toolchain
 define Require/working-make
-	echo 'all: test' > $(TMP_DIR)/check.mk
-	echo 'e0 = $$$$(foreach s,foobar,$$$$(eval $$$$s:))' >> $(TMP_DIR)/check.mk
-	echo 'e1 = $$$$(foreach s,foobar, $$$$(eval $$$$s:))' >> $(TMP_DIR)/check.mk
-	echo 'test: $$$$(strip $$$$(e0)) $$$$(strip $$$$(e1))' >> $(TMP_DIR)/check.mk
-	$(NO_TRACE_MAKE) -f $(TMP_DIR)/check.mk
+	$(MAKE) -v | awk '($$$$1 == "GNU") && ($$$$2 = "Make") && ($$$$3 >= "3.81") { print "ok" }' | grep ok > /dev/null
 endef
 
 $(eval $(call Require,working-make, \
@@ -39,6 +35,20 @@ endef
 
 $(eval $(call Require,case-sensitive-fs, \
 	OpenWrt can only be built on a case-sensitive filesystem \
+))
+
+define Require/getopt
+	getopt --help 2>&1 | grep long >/dev/null
+endef
+$(eval $(call Require,getopt, \
+	Please install GNU getopt \
+))
+
+define Require/fileutils
+	gcp --help || cp --help
+endef
+$(eval $(call Require,fileutils, \
+	Please install GNU fileutils \
 ))
 
 define Require/working-gcc
@@ -107,6 +117,10 @@ $(eval $(call RequireCommand,perl, \
 	Please install perl. \
 ))
 
+$(eval $(call RequireCommand,python, \
+	Please install python. \
+))
+
 $(eval $(call RequireCommand,wget, \
 	Please install wget. \
 ))
@@ -119,7 +133,26 @@ $(eval $(call Require,gnutar, \
 	Please install GNU tar. \
 ))
 
+$(eval $(call RequireCommand,svn, \
+	Please install the subversion client. \
+))
+
 $(eval $(call RequireCommand,autoconf, \
 	Please install GNU autoconf. \
 ))
 
+define Require/gnu-find
+	$(FIND) $(TMP_DIR) -lname foo
+endef
+
+$(eval $(call Require,gnu-find, \
+	Please install GNU find \
+))
+
+define Require/getopt-extended
+	getopt --long - - >/dev/null
+endef
+
+$(eval $(call Require,getopt-extended, \
+	Please install an extended getopt version that supports --long \
+))

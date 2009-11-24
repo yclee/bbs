@@ -3,65 +3,68 @@
 #include <linux/interrupt.h>
 
 #ifndef BCMDRIVER
-#include <linux/ssb/ssb.h>
-#include <linux/ssb/ssb_driver_chipcommon.h>
-#include <linux/ssb/ssb_driver_extif.h>
+#include <linux/ssb/ssb_embedded.h>
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
+#include <linux/gpio.h>
+#define ssb ssb_bcm47xx
+#endif
 extern struct ssb_bus ssb;
 
-#define gpio_op(op, param...) \
-	do { \
-		if (ssb.chipco.dev) \
-			return ssb_chipco_gpio_##op(&ssb.chipco, param); \
-		else if (ssb.extif.dev) \
-			return ssb_extif_gpio_##op(&ssb.extif, param); \
-		else \
-			return 0; \
-	} while (0);
-		
 
 static inline u32 gpio_in(void)
 {
-	gpio_op(in, ~0);
+	return ssb_gpio_in(&ssb, ~0);
 }
 
 static inline u32 gpio_out(u32 mask, u32 value)
 {
-	gpio_op(out, mask, value);
+	return ssb_gpio_out(&ssb, mask, value);
 }
 
 static inline u32 gpio_outen(u32 mask, u32 value)
 {
-	gpio_op(outen, mask, value);
+	return ssb_gpio_outen(&ssb, mask, value);
 }
 
 static inline u32 gpio_control(u32 mask, u32 value)
 {
-	if (ssb.chipco.dev)
-		return ssb_chipco_gpio_control(&ssb.chipco, mask, value);
-	else
-		return 0;
+	return ssb_gpio_control(&ssb, mask, value);
 }
 
 static inline u32 gpio_intmask(u32 mask, u32 value)
 {
-	gpio_op(intmask, mask, value);
+	return ssb_gpio_intmask(&ssb, mask, value);
 }
 
 static inline u32 gpio_intpolarity(u32 mask, u32 value)
 {
-	gpio_op(polarity, mask, value);
+	return ssb_gpio_polarity(&ssb, mask, value);
+}
+
+static inline u32 __ssb_write32_masked(struct ssb_device *dev, u16 offset,
+				       u32 mask, u32 value)
+{
+	value &= mask;
+	value |= ssb_read32(dev, offset) & ~mask;
+	ssb_write32(dev, offset, value);
+	return value;
 }
 
 static void gpio_set_irqenable(int enabled, irqreturn_t (*handler)(int, void *))
 {
 	int irq;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
+	irq = gpio_to_irq(0);
+	if (irq == -EINVAL) return;
+#else
 	if (ssb.chipco.dev)
 		irq = ssb_mips_irq(ssb.chipco.dev) + 2;
 	else if (ssb.extif.dev)
 		irq = ssb_mips_irq(ssb.extif.dev) + 2;
 	else return;
+#endif
 	
 	if (enabled) {
 		if (request_irq(irq, handler, IRQF_SHARED | IRQF_SAMPLE_RANDOM, "gpio", handler))
@@ -71,7 +74,7 @@ static void gpio_set_irqenable(int enabled, irqreturn_t (*handler)(int, void *))
 	}
 
 	if (ssb.chipco.dev)
-		ssb_write32_masked(ssb.chipco.dev, SSB_CHIPCO_IRQMASK, SSB_CHIPCO_IRQ_GPIO, (enabled ? SSB_CHIPCO_IRQ_GPIO : 0));
+		__ssb_write32_masked(ssb.chipco.dev, SSB_CHIPCO_IRQMASK, SSB_CHIPCO_IRQ_GPIO, (enabled ? SSB_CHIPCO_IRQ_GPIO : 0));
 }
 
 #else

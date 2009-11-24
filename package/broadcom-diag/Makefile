@@ -1,26 +1,23 @@
-# 
-# Copyright (C) 2006 OpenWrt.org
+#
+# Copyright (C) 2006-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 8682 2007-09-07 20:57:08Z nbd $
+# $Id: Makefile 10693 2008-03-31 08:04:56Z agb $
 
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=broadcom-diag
-PKG_RELEASE:=2
-
-PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(PKG_NAME)
+PKG_RELEASE:=4
 
 include $(INCLUDE_DIR)/package.mk
 
 define KernelPackage/diag
   SUBMENU:=Other modules
-  DEPENDS:=@LINUX_2_4_BRCM||LINUX_2_6_BRCM||LINUX_2_6_BRCM47XX
+  DEPENDS:=@TARGET_brcm_2_4||TARGET_brcm47xx
   TITLE:=Driver for router LEDs and Buttons
-  VERSION:=$(PKG_RELEASE)+$(LINUX_VERSION)-$(BOARD)-$(LINUX_RELEASE)
   FILES:=$(PKG_BUILD_DIR)/diag.$(LINUX_KMOD_SUFFIX)
 endef
 
@@ -29,8 +26,8 @@ define Build/Prepare
 	$(CP) ./src/* $(PKG_BUILD_DIR)/
 endef
 
-ifeq ($(BOARD),brcm)
-	BUILDFLAGS=-DBCMDRIVER -I$(LINUX_DIR)/arch/mips/bcm947xx/include $(if $(CONFIG_LINUX_2_4),-DLINUX_2_4)
+ifeq ($(BOARD),brcm-2.4)
+	BUILDFLAGS=-DBCMDRIVER -I$(LINUX_DIR)/arch/mips/bcm947xx/include -DLINUX_2_4
 endif
 
 define Build/Compile
@@ -41,5 +38,5 @@ define Build/Compile
 		EXTRA_CFLAGS="$(BUILDFLAGS)" \
 		modules
 endef
-	
+
 $(eval $(call KernelPackage,diag))

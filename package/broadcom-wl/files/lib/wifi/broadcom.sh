@@ -3,12 +3,14 @@ append DRIVERS "broadcom"
 scan_broadcom() {
 	local device="$1"
 	local wds
-	local adhoc sta apmode
-	local adhoc_if sta_if ap_if
+	local adhoc sta apmode mon
+	local adhoc_if sta_if ap_if mon_if
+	local _c=0
 
 	config_get vifs "$device" vifs
 	for vif in $vifs; do
 		config_get mode "$vif" mode
+		_c=$(($_c + 1))
 		case "$mode" in
 			adhoc)
 				adhoc=1
@@ -24,7 +26,14 @@ scan_broadcom() {
 			;;
 			wds)
 				config_get addr "$vif" bssid
-				[ -z "$addr" ] || append wds "$addr"
+				[ -z "$addr" ] || {
+					addr=$(echo "$addr" | tr 'A-F' 'a-f')
+					append wds "$addr"
+				}
+			;;
+			monitor)
+				mon=1
+				mon_if="$vif"
 			;;
 			*) echo "$device($vif): Invalid mode";;
 		esac
@@ -32,11 +41,11 @@ scan_broadcom() {
 	config_set "$device" wds "$wds"
 
 	local _c=
-	for vif in ${adhoc_if:-$sta_if $ap_if}; do
+	for vif in ${adhoc_if:-$sta_if $ap_if $mon_if}; do
 		config_set "$vif" ifname "wl0${_c:+.$_c}"
 		_c=$((${_c:-0} + 1))
 	done
-	config_set "$device" vifs "${adhoc_if:-$sta_if $ap_if}"
+	config_set "$device" vifs "${adhoc_if:-$sta_if $ap_if $mon_if}"
 
 	ifdown="down"
 	for vif in 0 1 2 3; do
@@ -46,23 +55,36 @@ scan_broadcom() {
 
 	ap=1
 	infra=1
-	mssid=1
+	if [ "$_c" -gt 1 ]; then
+		mssid=1
+	else
+		mssid=
+	fi
 	apsta=0
 	radio=1
-	case "$adhoc:$sta:$apmode" in
+	monitor=0
+	passive=0
+	case "$adhoc:$sta:$apmode:$mon" in
 		1*)
 			ap=0
-			mssid=0
+			mssid=
 			infra=0
 		;;
-		:1:1)
+		:1:1:)
 			apsta=1
 			wet=1
 		;;
-		:1:)
+		:1::)
 			wet=1
 			ap=0
-			mssid=0
+			mssid=
+		;;
+		:::1)
+			wet=1
+			ap=0
+			mssid=
+			monitor=1
+			passive=1
 		;;
 		::)
 			radio=0
@@ -95,9 +117,13 @@ enable_broadcom() {
 	config_get vifs "$device" vifs
 	config_get distance "$device" distance
 	config_get slottime "$device" slottime
-	config_get rxant "$device" rxant
-	config_get txant "$device" txant
-	local vif_pre_up vif_post_up vif_do_up
+	config_get rxantenna "$device" rxantenna
+	config_get txantenna "$device" txantenna
+	config_get_bool frameburst "$device" frameburst
+	config_get macfilter "$device" macfilter
+	config_get maclist "$device" maclist
+	config_get txpower "$device" txpower
+	local vif_pre_up vif_post_up vif_do_up vif_txpower
 
 	_c=0
 	nas="$(which nas)"
@@ -112,11 +138,26 @@ enable_broadcom() {
 	} || {
 		slottime="${slottime:--1}"
 	}
+	
+	case "$macfilter" in
+		allow|2)
+			macfilter=2;
+		;;
+		deny|1)
+			macfilter=1;
+		;;
+		disable|none|0)
+			macfilter=0;
+		;;
+	esac
 
 	for vif in $vifs; do
+		config_get vif_txpower "$vif" txpower
+
 		config_get mode "$vif" mode
 		append vif_pre_up "vif $_c" "$N"
 		append vif_post_up "vif $_c" "$N"
+		append vif_do_up "vif $_c" "$N"
 		
 		[ "$mode" = "sta" ] || {
 			config_get_bool hidden "$vif" hidden 0
@@ -144,11 +185,11 @@ enable_broadcom() {
 							config_get k "$vif" key$knr
 							[ -n "$k" ] || continue
 							[ "$defkey" = "$knr" ] && def="=" || def=""
-							append vif_pre_up "wepkey $def$knr,$k" "$N"
+							append vif_do_up "wepkey $def$knr,$k" "$N"
 						done
 					;;
 					"");;
-					*) append vif_pre_up "wepkey =1,$key" "$N";;
+					*) append vif_do_up "wepkey =1,$key" "$N";;
 				esac
 			;;
 			*psk*|*PSK*)
@@ -174,20 +215,31 @@ enable_broadcom() {
 					*) auth=2; wsec=2;;
 				esac
 				eval "${vif}_key=\"\$key\""
-				nasopts="-r \"\$${vif}_key\" -h $server -p $port"
+				nasopts="-r \"\$${vif}_key\" -h $server -p ${port:-1812}"
 			;;
 		esac
-		append vif_post_up "wsec $wsec" "$N"
-		append vif_post_up "wpa_auth $auth" "$N"
-		append vif_post_up "wsec_restrict $wsec_r" "$N"
-		append vif_post_up "eap_restrict $eap_r" "$N"
+		append vif_do_up "wsec $wsec" "$N"
+		append vif_do_up "wpa_auth $auth" "$N"
+		append vif_do_up "wsec_restrict $wsec_r" "$N"
+		append vif_do_up "eap_restrict $eap_r" "$N"
 		
 		config_get ssid "$vif" ssid
 		append vif_post_up "vlan_mode 0" "$N"
 		append vif_post_up "ssid $ssid" "$N"
-		case "$mode" in
-			sta|adhoc) append vif_do_up "ssid $ssid" "$N";;
-		esac
+		append vif_do_up "ssid $ssid" "$N"
+
+		[ "$mode" = "monitor" ] && {
+			append vif_post_up "monitor $monitor" "$N"
+			append vif_post_up "passive $passive" "$N"
+		}
+
+		[ "$mode" = "adhoc" ] && {
+			config_get bssid "$vif" bssid
+			[ -n "$bssid" ] && {
+				append vif_pre_up "des_bssid $bssid" "$N"
+				append vif_pre_up "allow_mode 1" "$N"
+			}
+		} || append vif_pre_up "allow_mode 0" "$N"
 		
 		append vif_post_up "enabled 1" "$N"
 		
@@ -207,8 +259,8 @@ enable_broadcom() {
 			[ "$mode" = "sta" ] && {
 				nas_mode="-S"
 				[ -z "$bridge" ] || {
-					append vif_pre_up "supplicant 1" "$N"
-					append vif_pre_up "passphrase $key" "$N"
+					append vif_post_up "supplicant 1" "$N"
+					append vif_post_up "passphrase $key" "$N"
 					
 					use_nas=0
 				}
@@ -222,24 +274,27 @@ enable_broadcom() {
 $ifdown
 
 ap $ap
-mssid $mssid
+${mssid:+mssid $mssid}
 apsta $apsta
 infra $infra
 ${wet:+wet 1}
 802.11d 0
 802.11h 0
-rxant ${rxant:-3}
-txant ${txant:-3}
+rxant ${rxantenna:-3}
+txant ${txantenna:-3}
+monitor ${monitor:-0}
+passive ${passive:-0}
 
 radio ${radio:-1}
-macfilter 0
-maclist none
+macfilter ${macfilter:-0}
+maclist ${maclist:-none}
 wds none
 ${wds:+wds $wds}
-${channel:+channel $channel}
 country ${country:-IL0}
+${channel:+channel $channel}
 maxassoc ${maxassoc:-128}
 slottime ${slottime:--1}
+${frameburst:+frameburst $frameburst}
 
 $vif_pre_up
 up
@@ -249,6 +304,12 @@ EOF
 	wlc stdin <<EOF
 $vif_do_up
 EOF
+
+	# use vif_txpower (from last wifi-iface) instead of txpower (from
+	# wifi-device) if the latter does not exist
+	txpower=${txpower:-$vif_txpower}
+	[ -z "$txpower" ] || iwconfig $device txpower ${txpower}dBm
+
 	eval "$nas_cmd"
 }
 

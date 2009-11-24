@@ -1,16 +1,16 @@
 # 
-# Copyright (C) 2006 OpenWrt.org
+# Copyright (C) 2006-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 8682 2007-09-07 20:57:08Z nbd $
+# $Id: Makefile 12681 2008-09-24 13:06:01Z nico $
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=qos-scripts
 PKG_VERSION:=1.2.1
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
 
@@ -19,12 +19,14 @@ include $(INCLUDE_DIR)/package.mk
 define Package/qos-scripts
   SECTION:=utils
   CATEGORY:=Base system
-  DEPENDS:=+tc +kmod-sched +iptables-mod-filter +iptables-mod-ipopt +iptables-mod-conntrack +iptables-mod-imq
+  DEPENDS:=+tc +kmod-sched +iptables-mod-filter +iptables-mod-ipopt +iptables-mod-conntrack-extra +iptables-mod-imq
   TITLE:=QoS scripts
-  DESCRIPTION:=QoS scripts \\\
-	 A set of scripts that abstract QoS configuration \\\
-	 into a simple configuration file supporting stanzas that specify \\\
-	 any number of QoS entries.
+endef
+
+define Package/qos-scripts/description
+ A set of scripts that abstract QoS configuration into a simple 
+ configuration file supporting stanzas that specify any number of QoS 
+ entries.
 endef
 
 define Build/Prepare

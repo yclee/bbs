@@ -1,20 +1,28 @@
-Index: busybox-1.4.2/include/applets.h
-===================================================================
---- busybox-1.4.2.orig/include/applets.h	2007-06-04 13:21:34.188779184 +0200
-+++ busybox-1.4.2/include/applets.h	2007-06-04 13:21:34.786688288 +0200
-@@ -178,6 +178,7 @@
- USE_LN(APPLET(ln, _BB_DIR_BIN, _BB_SUID_NEVER))
+--- a/include/applets.h
++++ b/include/applets.h
+@@ -220,6 +220,7 @@
+ USE_LOAD_POLICY(APPLET(load_policy, _BB_DIR_USR_SBIN, _BB_SUID_NEVER))
  USE_LOADFONT(APPLET(loadfont, _BB_DIR_USR_BIN, _BB_SUID_NEVER))
  USE_LOADKMAP(APPLET(loadkmap, _BB_DIR_SBIN, _BB_SUID_NEVER))
-+USE_LOCK(APPLET_NOUSAGE(lock, lock, _BB_DIR_BIN, _BB_SUID_NEVER))
++USE_LOCK(APPLET(lock, _BB_DIR_BIN, _BB_SUID_NEVER))
  USE_LOGGER(APPLET(logger, _BB_DIR_USR_BIN, _BB_SUID_NEVER))
  USE_LOGIN(APPLET(login, _BB_DIR_BIN, _BB_SUID_ALWAYS))
- USE_LOGNAME(APPLET(logname, _BB_DIR_USR_BIN, _BB_SUID_NEVER))
-Index: busybox-1.4.2/miscutils/Config.in
-===================================================================
---- busybox-1.4.2.orig/miscutils/Config.in	2007-06-04 13:21:32.136091240 +0200
-+++ busybox-1.4.2/miscutils/Config.in	2007-06-04 13:21:34.786688288 +0200
-@@ -237,6 +237,12 @@
+ USE_LOGNAME(APPLET_NOFORK(logname, logname, _BB_DIR_USR_BIN, _BB_SUID_NEVER, logname))
+--- a/include/usage.h
++++ b/include/usage.h
+@@ -2138,6 +2138,9 @@
+ #define loadkmap_example_usage \
+        "$ loadkmap < /etc/i18n/lang-keymap\n"
+ 
++#define lock_trivial_usage NOUSAGE_STR
++#define lock_full_usage ""
++
+ #define logger_trivial_usage \
+        "[OPTION]... [MESSAGE]"
+ #define logger_full_usage "\n\n" \
+--- a/miscutils/Config.in
++++ b/miscutils/Config.in
+@@ -364,6 +364,12 @@
  	  Enables the 'hdparm -d' option to get/set using_dma flag.
  	  This is dangerous stuff, so you should probably say N.
  
@@ -27,23 +35,19 @@ Index: busybox-1.4.2/miscutils/Config.in
  config MAKEDEVS
  	bool "makedevs"
  	default n
-Index: busybox-1.4.2/miscutils/Kbuild
-===================================================================
---- busybox-1.4.2.orig/miscutils/Kbuild	2007-06-04 13:21:32.142090328 +0200
-+++ busybox-1.4.2/miscutils/Kbuild	2007-06-04 13:21:34.786688288 +0200
-@@ -15,6 +15,7 @@
- lib-$(CONFIG_HDPARM)      += hdparm.o
- lib-$(CONFIG_LAST)        += last.o
+--- a/miscutils/Kbuild
++++ b/miscutils/Kbuild
+@@ -20,6 +20,7 @@
+ lib-$(CONFIG_FEATURE_LAST_SMALL)+= last.o
+ lib-$(CONFIG_FEATURE_LAST_FANCY)+= last_fancy.o
  lib-$(CONFIG_LESS)        += less.o
 +lib-$(CONFIG_LOCK)        += lock.o
  lib-$(CONFIG_MAKEDEVS)    += makedevs.o
- lib-$(CONFIG_MOUNTPOINT)  += mountpoint.o
- lib-$(CONFIG_MT)          += mt.o
-Index: busybox-1.4.2/miscutils/lock.c
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ busybox-1.4.2/miscutils/lock.c	2007-06-04 13:21:34.787688136 +0200
-@@ -0,0 +1,135 @@
+ lib-$(CONFIG_MAN)         += man.o
+ lib-$(CONFIG_MICROCOM)    += microcom.o
+--- /dev/null
++++ b/miscutils/lock.c
+@@ -0,0 +1,132 @@
 +/*
 + * Copyright (C) 2006 Felix Fietkau <nbd@openwrt.org>
 + *
@@ -56,7 +60,7 @@ Index: busybox-1.4.2/miscutils/lock.c
 +#include <fcntl.h>
 +#include <unistd.h>
 +#include <stdio.h>
-+#include "busybox.h" 
++#include "busybox.h"
 +
 +static int unlock = 0;
 +static int shared = 0;
@@ -84,19 +88,19 @@ Index: busybox-1.4.2/miscutils/lock.c
 +{
 +	FILE *f;
 +	int i;
-+	
++
 +	if ((f = fopen(file, "r")) == NULL)
 +		return 0;
-+	
++
 +	fscanf(f, "%d", &i);
 +	if (i > 0)
 +		kill(i, SIGTERM);
-+	
++
 +	fclose(f);
 +
 +	return 0;
 +}
-+		
++
 +static int do_lock(void)
 +{
 +	int pid;
@@ -118,7 +122,7 @@ Index: busybox-1.4.2/miscutils/lock.c
 +
 +	if (pid < 0)
 +		return -1;
-+	
++
 +	if (pid == 0) {
 +		signal(SIGKILL, exit_unlock);
 +		signal(SIGTERM, exit_unlock);
@@ -142,11 +146,8 @@ Index: busybox-1.4.2/miscutils/lock.c
 +	return 0;
 +}
 +
-+#ifndef CONFIG_LOCK
-+int main(int argc, char **argv)
-+#else
++int lock_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 +int lock_main(int argc, char **argv)
-+#endif
 +{
 +	char **args = &argv[1];
 +	int c = argc - 1;

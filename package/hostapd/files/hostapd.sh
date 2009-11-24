@@ -11,7 +11,7 @@ hostapd_setup_vif() {
 
 	# TODO: move this parsing function somewhere generic, so that
 	# later it can be reused by drivers that don't use hostapd
-	
+
 	# crypto defaults: WPA2 vs WPA1
 	case "$enc" in
 		wpa2*|WPA2*|*PSK2*|*psk2*)
@@ -34,26 +34,62 @@ hostapd_setup_vif() {
 		*tkip|*TKIP) crypto="TKIP";;
 		*aes|*AES|*ccmp|*CCMP) crypto="CCMP";;
 	esac
-	
+
 	# use crypto/auth settings for building the hostapd config
 	case "$enc" in
 		*psk*|*PSK*)
 			config_get psk "$vif" key
-			append hostapd_cfg "wpa_passphrase=$psk" "$N"
+			if [ ${#psk} -eq 64 ]; then
+				append hostapd_cfg "wpa_psk=$psk" "$N"
+			else
+				append hostapd_cfg "wpa_passphrase=$psk" "$N"
+			fi
 		;;
 		*wpa*|*WPA*)
-		# FIXME: add wpa+radius here
+		        # required fields? formats?
+		        # hostapd is particular, maybe a default configuration for failures
+			config_get server "$vif" server
+			append hostapd_cfg "auth_server_addr=$server" "$N"
+			config_get port "$vif" port
+			port=${port:-1812}
+			append hostapd_cfg "auth_server_port=$port" "$N"
+			config_get secret "$vif" key
+			append hostapd_cfg "auth_server_shared_secret=$secret" "$N"
+			config_get nasid "$vif" nasid
+			append hostapd_cfg "nas_identifier=$nasid" "$N"
+			append hostapd_cfg "eapol_key_index_workaround=1" "$N"
+			append hostapd_cfg "radius_acct_interim_interval=300" "$N"
+			append hostapd_cfg "ieee8021x=1" "$N"
+			append hostapd_cfg "auth_algs=1" "$N"
+			append hostapd_cfg "wpa_key_mgmt=WPA-EAP" "$N"
+			append hostapd_cfg "wpa_group_rekey=300" "$N"
+			append hostapd_cfg "wpa_gmk_rekey=640" "$N"
 		;;
 		*)
-			return 0;
+			wpa=0
 		;;
 	esac
 	config_get ifname "$vif" ifname
 	config_get bridge "$vif" bridge
 	config_get ssid "$vif" ssid
+	config_get device "$vif" device
+	config_get channel "$device" channel
+	config_get hwmode "$device" hwmode
+	case "$hwmode" in
+		11a) hwmode=a;;
+		11b) hwmode=b;;
+		11g) hwmode=g;;
+		*)
+			hwmode=
+			[ "$channel" -gt 14 ] && hwmode=a
+		;;
+	esac
 	cat > /var/run/hostapd-$ifname.conf <<EOF
+ctrl_interface=/var/run/hostapd-$ifname
 driver=$driver
 interface=$ifname
+hw_mode=${hwmode:-g}
+channel=$channel
 ${bridge:+bridge=$bridge}
 ssid=$ssid
 debug=0
@@ -61,6 +97,6 @@ wpa=$wpa
 wpa_pairwise=$crypto
 $hostapd_cfg
 EOF
-	hostapd -B /var/run/hostapd-$ifname.conf
+	hostapd -P /var/run/wifi-$ifname.pid -B /var/run/hostapd-$ifname.conf
 }
 

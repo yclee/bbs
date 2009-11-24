@@ -17,30 +17,39 @@ failsafe() {
 	ash --login
 }
 
-mount none /proc -t proc
-mount none /sys  -t sysfs
+mount proc /proc -t proc
+mount sysfs /sys -t sysfs
 
-size=$(awk '/MemTotal:/ {l=5242880;mt=($2*1024);print((s=mt/2)<l)?mt-l:s}' /proc/meminfo)
-mount none /tmp -t tmpfs -o size=$size,nosuid,nodev,mode=1777
+size=$(awk '/MemTotal:/ {l=5242880;mt=($2*1024);print((s=mt/2)<l)&&(mt>l)?mt-l:s}' /proc/meminfo)
+mount tmpfs /tmp -t tmpfs -o size=$size,nosuid,nodev,mode=1777
 
 if grep devfs /proc/filesystems > /dev/null; then
-	mount none /dev -t devfs
+	mount devfs /dev -t devfs
 	M0=/dev/pty/m0
 	M1=/dev/pty/m1
 	HOTPLUG=/sbin/hotplug-call
-else
+
+elif [ -x /sbin/hotplug2 ]; then
 	mount -t tmpfs tmpfs /dev -o size=512K
 	mknod /dev/console c 5 1
-	mkdir /dev/shm
 	/sbin/hotplug2 --coldplug --set-rules-file /etc/hotplug2-init.rules
 	/sbin/hotplug2 --no-coldplug --persistent --set-rules-file /etc/hotplug2-init.rules &
 	M0=/dev/ptmx
 	M1=/dev/ptmx
 	HOTPLUG=
+
+elif [ -x /sbin/udevd ]; then
+	mount -n -t tmpfs -o mode=0755 udev /dev
+	/sbin/udevd --daemon
+	/sbin/udevtrigger
+	/sbin/udevsettle
+	M0=/dev/pty/ptmx
+	M1=/dev/pty/ptmx
+	HOTPLUG=
 fi
 
 mkdir -p /dev/pts /dev/shm
-mount none /dev/pts -t devpts
+mount devpts /dev/pts -t devpts
 
 # the shell really doesn't like having stdin/out closed
 # that's why we use /dev/pty/m0 and m1 as replacement
@@ -53,15 +62,27 @@ dd if=/dev/console of=/dev/null bs=1 count=0 >/dev/null 2>/dev/null && {
 exec <$M0 >$M1 2>&0
 
 echo "- preinit -"
+echo "Press CTRL-C for failsafe"
+trap 'FAILSAFE=true' INT
 trap 'FAILSAFE=true' USR1
 [ -e /etc/preinit.arch ] && . /etc/preinit.arch
 set_state preinit
 echo "$HOTPLUG" > /proc/sys/kernel/hotplug
 eval ${FAILSAFE:+failsafe}
 lock -w /tmp/.failsafe
-mount_root
 
-echo "- init -"
+if [ -z "$INITRAMFS" ]; then
+	mount_root
+	[ -f /sysupgrade.tgz ] && {
+		echo "- config restore -"
+		cd /
+		mv sysupgrade.tgz /tmp
+		tar xzf /tmp/sysupgrade.tgz
+		rm -f /tmp/sysupgrade.tgz
+		sync
+	}
+
+	echo "- init -"
 	
-killall hotplug2
-exec /sbin/init
+	exec /sbin/init
+fi

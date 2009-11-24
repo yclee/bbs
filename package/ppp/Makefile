@@ -1,22 +1,22 @@
 # 
-# Copyright (C) 2006 OpenWrt.org
+# Copyright (C) 2006-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 8682 2007-09-07 20:57:08Z nbd $
+# $Id: Makefile 12369 2008-08-22 05:03:37Z nico $
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=ppp
 PKG_VERSION:=2.4.3
-PKG_RELEASE:=8
+PKG_RELEASE:=10
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=ftp://ftp.samba.org/pub/ppp/
 PKG_MD5SUM:=848f6c3cafeb6074ffeb293c3af79b7c
 
-PKG_BUILD_DEPENDS:=libpcap linux-atm
+PKG_BUILD_DEPENDS:=libpcap
 
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/kernel.mk
@@ -28,63 +28,78 @@ define Package/ppp/Default
 endef
 
 define Package/ppp
-  $(call Package/ppp/Default)
+$(call Package/ppp/Default)
   DEPENDS:=+kmod-ppp
   TITLE:=PPP daemon
-  DESCRIPTION:=\
-	This package contains the PPP (Point-to-Point Protocol) daemon.
   MENU:=1
 endef
 
+define Package/ppp/description
+ This package contains the PPP (Point-to-Point Protocol) daemon.
+endef
+
 define Package/ppp-mod-pppoa
-  $(call Package/ppp/Default)
+$(call Package/ppp/Default)
   DEPENDS:=ppp +linux-atm +kmod-pppoa
   TITLE:=PPPoA plugin
-  DESCRIPTION:=\
-	This package contains a PPPoA (PPP over ATM) plugin for ppp.
+endef
+
+define Package/ppp-mod-pppoa/description
+ This package contains a PPPoA (PPP over ATM) plugin for ppp.
 endef
 
 define Package/ppp-mod-pppoe
-  $(call Package/ppp/Default)
+$(call Package/ppp/Default)
   DEPENDS:=ppp +kmod-pppoe
   TITLE:=PPPoE plugin
-  DESCRIPTION:=\
-	This package contains a PPPoE (PPP over Ethernet) plugin for ppp.
+endef
+
+define Package/ppp-mod-pppoe/description
+ This package contains a PPPoE (PPP over Ethernet) plugin for ppp.
 endef
 
 define Package/ppp-mod-radius
-  $(call Package/ppp/Default)
+$(call Package/ppp/Default)
   DEPENDS:=ppp
   TITLE:=RADIUS plugin
-  DESCRIPTION:=\
-	This package contains a RADIUS (Remote Authentication Dial-In User \\\
-	Service) plugin for ppp.
+endef
+
+define Package/ppp-mod-radius/description
+ This package contains a RADIUS (Remote Authentication Dial-In User 
+ Service) plugin for ppp.
 endef
 
 define Package/chat
-  $(call Package/ppp/Default)
+$(call Package/ppp/Default)
   DEPENDS:=ppp
   TITLE:=Establish conversation with a modem
-  DESCRIPTION:=\
-	This package contains an utility to establish conversation with other \\\
-	PPP servers (via a modem).
+endef
+
+define Package/chat/description
+ This package contains an utility to establish conversation with other 
+ PPP servers (via a modem).
 endef
 
 define Package/pppdump
-  $(call Package/ppp/Default)
+$(call Package/ppp/Default)
   DEPENDS:=ppp
   TITLE:=Read PPP record file
-  DESCRIPTION:=\
-	This package contains an utility to read PPP record file.
+endef
+
+define Package/pppdump/description
+ This package contains an utility to read PPP record file.
 endef
 
 define Package/pppstats
-  $(call Package/ppp/Default)
+$(call Package/ppp/Default)
   DEPENDS:=ppp
   TITLE:=Report PPP statistics
-  DESCRIPTION:=\
-	This package contains an utility to report PPP statistics.
 endef
+
+define Package/pppstats/description
+ This package contains an utility to report PPP statistics.
+endef
+
 
 define Build/Configure
 $(call Build/Configure/Default,, \
@@ -106,6 +121,11 @@ define Build/Compile
 		all install
 endef
 
+define Build/InstallDev
+	$(INSTALL_DIR) $(1)/usr/include
+	$(CP) $(PKG_INSTALL_DIR)/usr/include/pppd $(1)/usr/include/
+endef
+
 define Package/ppp/install
 	$(INSTALL_DIR) $(1)/usr/lib/pppd/$(PKG_VERSION)
 	$(INSTALL_DIR) $(1)/usr/sbin
@@ -119,6 +139,8 @@ define Package/ppp/install
 	$(INSTALL_DIR) $(1)/etc/ppp/ip-up.d
 	$(INSTALL_BIN) ./files/etc/ppp/ip-down $(1)/etc/ppp/
 	$(INSTALL_DIR) $(1)/etc/ppp/ip-down.d
+	$(INSTALL_BIN) ./files/etc/ppp/ipv6-up $(1)/etc/ppp/
+	$(INSTALL_BIN) ./files/etc/ppp/ipv6-down $(1)/etc/ppp/
 	$(INSTALL_DATA) ./files/etc/ppp/options $(1)/etc/ppp/
 	ln -sf /tmp/resolv.conf.auto $(1)/etc/ppp/resolv.conf
 endef

@@ -1,8 +1,6 @@
-Index: madwifi-ng-r2568-20070710/net80211/ieee80211_scan.c
-===================================================================
---- madwifi-ng-r2568-20070710.orig/net80211/ieee80211_scan.c	2007-07-23 01:48:38.374166989 +0200
-+++ madwifi-ng-r2568-20070710/net80211/ieee80211_scan.c	2007-07-23 01:48:41.534347075 +0200
-@@ -291,7 +291,8 @@
+--- a/net80211/ieee80211_scan.c
++++ b/net80211/ieee80211_scan.c
+@@ -291,7 +291,8 @@ scan_restart_pwrsav(unsigned long arg)
  	struct ieee80211com *ic = vap->iv_ic;
  	int delay;
  

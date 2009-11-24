@@ -3,9 +3,15 @@ scan_ppp() {
 	pppdev="${pppdev:-0}"
 	config_get unit "$1" unit
 	[ -z "$unit" ] && {
-		config_set "$1" ifname "ppp$pppdev"
-		config_set "$1" unit "$pppdev"
-		pppdev="$(($pppdev + 1))"
+		unit="$pppdev"
+		if [ "${ifname%%[0-9]*}" = ppp ]; then
+			unit="${ifname##ppp}"
+			[ "$pppdev" -le "$unit" ] && pppdev="$(($unit + 1))"
+		else
+			pppdev="$(($pppdev + 1))"
+		fi
+		config_set "$1" ifname "ppp$unit"
+		config_set "$1" unit "$unit"
 	}
 }
 
@@ -19,6 +25,10 @@ start_pppd() {
 		lock -u "/var/lock/ppp-${cfg}"
 		return 0
 	}
+
+	# Workaround: sometimes hotplug2 doesn't deliver the hotplug event for creating
+	# /dev/ppp fast enough to be used here
+	[ -e /dev/ppp ] || mknod /dev/ppp c 108 0
 
 	config_get device "$cfg" device
 	config_get unit "$cfg" unit
@@ -34,13 +44,20 @@ start_pppd() {
 
 	interval="${keepalive##*[, ]}"
 	[ "$interval" != "$keepalive" ] || interval=5
+
+	config_get_bool peerdns "$cfg" peerdns 1 
+	[ "$peerdns" -eq 1 ] && peerdns="usepeerdns" || peerdns="" 
 	
 	config_get demand "$cfg" demand
 	[ -n "$demand" ] && echo "nameserver 1.1.1.1" > /tmp/resolv.conf.auto
+
+	config_get_bool ipv6 "$cfg" ipv6 0
+	[ "$ipv6" -eq 1 ] && ipv6="+ipv6" || ipv6=""
+
 	/usr/sbin/pppd "$@" \
 		${keepalive:+lcp-echo-interval $interval lcp-echo-failure ${keepalive%%[, ]*}} \
 		${demand:+precompiled-active-filter /etc/ppp/filter demand idle }${demand:-persist} \
-		usepeerdns \
+		$peerdns \
 		$defaultroute \
 		${username:+user "$username" password "$password"} \
 		unit "$unit" \
@@ -48,6 +65,7 @@ start_pppd() {
 		ipparam "$cfg" \
 		${connect:+connect "$connect"} \
 		${disconnect:+disconnect "$disconnect"} \
+		${ipv6} \
 		${pppd_options}
 
 	lock -u "/var/lock/ppp-${cfg}"

@@ -56,7 +56,6 @@
 
 static char wlbuf[8192];
 static char interface[16] = "wl0";
-static unsigned long ptable[128];
 static unsigned long kmem_offset = 0;
 static int vif = 0, debug = 1, fromstdin = 0;
 
@@ -67,6 +66,7 @@ typedef enum {
 	PARAM_TYPE =    0x00f,
 	INT =    0x001,
 	STRING = 0x002,
+	MAC =    0x003,
 
 	/* options */
 	PARAM_OPTIONS = 0x0f0,
@@ -98,205 +98,6 @@ static inline int my_ether_ntoa(unsigned char *ea, char *buf)
 		ea[0], ea[1], ea[2], ea[3], ea[4], ea[5]);
 }
 
-/*
- * find the starting point of wl.o in memory
- * by reading /proc/ksyms
- */
-static inline void wlc_get_mem_offset(void)
-{
-	FILE *f;
-	char s[64];
-
-	/* yes, i'm lazy ;) */
-	f = popen("grep '\\[wl]' /proc/ksyms | sort", "r");
-	if (fgets(s, 64, f) == 0)
-		return;
-
-	pclose(f);
-	
-	s[8] = 0;
-	kmem_offset = strtoul(s, NULL, 16);
-
-	/* sanity check */
-	if (kmem_offset < 0xc0000000)
-		kmem_offset = 0;
-}
-
-
-static int ptable_init(void)
-{
-	glob_t globbuf;
-	struct stat statbuf;
-	int fd;
-
-	if (ptable[0] == PTABLE_MAGIC)
-		return 0;
-	
-	glob("/lib/modules/2.4.*/wl.o.patch", 0, NULL, &globbuf);
-	
-	if (globbuf.gl_pathv[0] == NULL)
-		return -1;
-	
-	if ((fd = open(globbuf.gl_pathv[0], O_RDONLY)) < 0)
-		return -1;
-	
-	if (fstat(fd, &statbuf) < 0)
-		goto failed;
-
-	if (statbuf.st_size < 512)
-		goto failed;
-
-	if (read(fd, ptable, 512) < 512)
-		goto failed;
-	
-	if (ptable[0] != PTABLE_MAGIC)
-		goto failed;
-	
-	close(fd);
-
-	wlc_get_mem_offset();
-	if (kmem_offset == 0)
-		return -1;
-	
-	return 0;
-		
-failed:
-	close(fd);
-
-	return -1;
-}
-
-static inline unsigned long wlc_kmem_read(unsigned long offset)
-{
-	int fd;
-	unsigned long ret;
-
-	if ((fd = open("/dev/kmem", O_RDONLY )) < 0)
-		return -1;
-	
-	lseek(fd, 0x70000000, SEEK_SET);
-	lseek(fd, (kmem_offset - 0x70000000) + offset, SEEK_CUR);
-	read(fd, &ret, 4);
-	close(fd);
-
-	return ret;
-}
-
-static inline void wlc_kmem_write(unsigned long offset, unsigned long value)
-{
-	int fd;
-
-	if ((fd = open("/dev/kmem", O_WRONLY )) < 0)
-		return;
-	
-	lseek(fd, 0x70000000, SEEK_SET);
-	lseek(fd, (kmem_offset - 0x70000000) + offset, SEEK_CUR);
-	write(fd, &value, 4);
-	close(fd);
-}
-
-static int wlc_patcher_getval(unsigned long key, unsigned long *val)
-{
-	unsigned long *pt = &ptable[1];
-	unsigned long tmp;
-	
-	if (ptable_init() < 0) {
-		fprintf(stderr, "Could not load the ptable\n");
-		return -1;
-	}
-
-	while (*pt != PTABLE_END) {
-		if (*pt == key) {
-			tmp = wlc_kmem_read(pt[1]);
-
-			if (tmp == pt[2])
-				*val = 0xffffffff;
-			else
-				*val = tmp;
-			
-			return 0;
-		}
-		pt += 3;
-	}
-	
-	return -1;
-}
-
-static int wlc_patcher_setval(unsigned long key, unsigned long val)
-{
-	unsigned long *pt = &ptable[1];
-	
-	if (ptable_init() < 0) {
-		fprintf(stderr, "Could not load the ptable\n");
-		return -1;
-	}
-
-	if (val != 0xffffffff)
-		val = (pt[2] & ~(0xffff)) | (val & 0xffff);
-	
-	while (*pt != PTABLE_END) {
-		if (*pt == key) {
-			if (val == 0xffffffff) /* default */
-				val = pt[2];
-
-			wlc_kmem_write(pt[1], val);
-		}
-		pt += 3;
-	}
-	
-	return 0;
-}
-
-static int wlc_slottime(wlc_param param, void *data, void *value)
-{
-	int *val = (int *) value;
-	int ret = 0;
-
-	if ((param & PARAM_MODE) == SET) {
-		wlc_patcher_setval(PTABLE_SLT1, *val);
-		wlc_patcher_setval(PTABLE_SLT2, ((*val == -1) ? *val : *val + 510));
-	} else if ((param & PARAM_MODE) == GET) {
-		ret = wlc_patcher_getval(PTABLE_SLT1, (unsigned long *) val);
-		if (*val != 0xffffffff)
-			*val &= 0xffff;
-	}
-
-	return ret;
-}
-
-static int wlc_noack(wlc_param param, void *data, void *value)
-{
-	int *val = (int *) value;
-	int ret = 0;
-
-	if ((param & PARAM_MODE) == SET) {
-		wlc_patcher_setval(PTABLE_ACKW, ((*val) ? 1 : 0));
-	} else if ((param & PARAM_MODE) == GET) {
-		ret = wlc_patcher_getval(PTABLE_ACKW, (unsigned long *) val);
-		*val &= 0xffff;
-		*val = (*val ? 1 : 0);
-	}
-
-	return ret;
-}
-
-static int wlc_ibss_merge(wlc_param param, void *data, void *value)
-{
-	int *val = (int *) value;
-	int ret = 0;
-
-	if ((param & PARAM_MODE) == SET) {
-		/* overwrite the instruction with 'lui v0,0x0' - fake a return
-		 * status of 0 for wlc_bcn_tsf_later */
-		wlc_patcher_setval(PTABLE_ACKW, ((*val) ? -1 : 0x3c020000));
-	} else if ((param & PARAM_MODE) == GET) {
-		ret = wlc_patcher_getval(PTABLE_ACKW, (unsigned long *) val);
-		*val = ((*val == -1) ? 1 : 0);
-	}
-
-	return ret;
-}
-
 static int wlc_ioctl(wlc_param param, void *data, void *value)
 {
 	unsigned int *var = ((unsigned int *) data);
@@ -306,11 +107,13 @@ static int wlc_ioctl(wlc_param param, void *data, void *value)
 		return wl_ioctl(interface, ioc, NULL, 0);
 	}
 	switch(param & PARAM_TYPE) {
+		case MAC:
+			return wl_ioctl(interface, ((param & SET) ? (ioc) : (ioc >> 16)) & 0xffff, value, 6);
 		case INT:
 			return wl_ioctl(interface, ((param & SET) ? (ioc) : (ioc >> 16)) & 0xffff, value, sizeof(int));
 		case STRING:
 			return wl_ioctl(interface, ((param & SET) ? (ioc) : (ioc >> 16)) & 0xffff, value, BUFSIZE);
-	}	
+	}
 	return 0;
 }
 
@@ -324,12 +127,20 @@ static int wlc_iovar(wlc_param param, void *data, void *value)
 		switch(param & PARAM_TYPE) {
 			case INT:
 				ret = wl_iovar_setint(interface, iov, *val);
+				break;
+			case MAC:
+				ret = wl_iovar_set(interface, iov, value, 6);
+				break;
 		}
 	}
 	if (param & GET) {
 		switch(param & PARAM_TYPE) {
 			case INT:
 				ret = wl_iovar_getint(interface, iov, val);
+				break;
+			case MAC:
+				ret = wl_iovar_get(interface, iov, value, 6);
+				break;
 		}
 	}
 
@@ -761,7 +572,7 @@ static const struct wlc_call wlc_calls[] = {
 		.name = "mssid",
 		.param = INT,
 		.handler = wlc_iovar,
-		.data.str = "mssid",
+		.data.str = "mbss",
 		.desc = "Multi-ssid mode"
 	},
 	{
@@ -957,6 +768,13 @@ static const struct wlc_call wlc_calls[] = {
 		.desc = "RTS threshold"
 	},
 	{
+		.name = "slottime",
+		.param = INT,
+		.handler = wlc_iovar,
+		.data.str = "acktiming",
+		.desc = "Slot time"
+	},
+	{
 		.name = "rxant",
 		.param = INT,
 		.handler = wlc_ioctl,
@@ -1053,23 +871,40 @@ static const struct wlc_call wlc_calls[] = {
 		.desc = "Broadcom Afterburner"
 	},
 	{
-		.name = "slottime",
+		.name = "join_once",
 		.param = INT,
-		.handler = wlc_slottime,
-		.desc = "Slot time (-1 = auto)"
+		.handler = wlc_iovar,
+		.data.str = "IBSS_join_once",
+		.desc = "Prevent unwanted IBSS merges"
 	},
 	{
-		.name = "txack",
-		.param = INT,
-		.handler = wlc_noack,
-		.desc = "Tx ACK enabled flag"
+		.name = "bssid",
+		.param = MAC,
+		.handler = wlc_iovar,
+		.data.str = "cur_etheraddr",
+		.desc = "BSSID"
 	},
 	{
-		.name = "ibss_merge",
+		.name = "default_bssid",
+		.param = MAC,
+		.handler = wlc_iovar,
+		.data.str = "perm_etheraddr",
+		.desc = "Default BSSID (read-only)"
+	},
+	{
+		.name = "allow_mode",
 		.param = INT,
-		.handler = wlc_ibss_merge,
-		.desc = "Allow IBSS merge in Ad-Hoc mode"
-	}
+		.data.num = ((WLC_GET_ALLOW_MODE << 16) | WLC_SET_ALLOW_MODE),
+		.handler = wlc_ioctl,
+		.desc = "STA/IBSS assoc mode"
+	},
+	{
+		.name = "des_bssid",
+		.param = MAC,
+		.data.num = ((WLC_GET_DESIRED_BSSID << 16) | WLC_SET_DESIRED_BSSID),
+		.handler = wlc_ioctl,
+		.desc = "Desired BSSID"
+	},
 };
 #define wlc_calls_size (sizeof(wlc_calls) / sizeof(struct wlc_call))
 
@@ -1093,6 +928,7 @@ static int do_command(const struct wlc_call *cmd, char *arg)
 	int ret = 0;
 	char *format, *end;
 	int intval;
+	void *ptr = (void *) buf;
 
 	if (debug >= 10) {
 		fprintf(stderr, "do_command %-16s\t'%s'\n", cmd->name, arg);
@@ -1117,6 +953,11 @@ static int do_command(const struct wlc_call *cmd, char *arg)
 					break;
 				case STRING:
 					fprintf(stdout, "%s\n", buf);
+					break;
+				case MAC:
+					my_ether_ntoa(buf, buf + 6);
+					fprintf(stdout, "%s\n", buf + 6);
+					break;
 			}
 		}
 	} else { /* SET */
@@ -1134,9 +975,17 @@ static int do_command(const struct wlc_call *cmd, char *arg)
 			case STRING:
 				strncpy(buf, arg, BUFSIZE);
 				buf[BUFSIZE - 1] = 0;
+				break;
+			case MAC:
+				ptr = ether_aton(arg);
+				if (!ptr) {
+					fprintf(stderr, "%s: Invalid mac address '%s'\n", cmd->name, arg);
+					return -1;
+				}
+				break;
 		}
 
-		ret = cmd->handler(cmd->param | SET, (void *) &cmd->data, (void *) buf);
+		ret = cmd->handler(cmd->param | SET, (void *) &cmd->data, ptr);
 	}
 	
 	if ((debug > 0) && (ret != 0)) 

@@ -4,19 +4,13 @@
 . /etc/functions.sh
 [ $# = 0 ] && { echo "  $0 <group>"; exit; }
 [ "x$1" = "x-a" ] && {
+	[ -e "/tmp/resolv.conf.auto" ] && rm /tmp/resolv.conf.auto
 	config_cb() {
 		[ interface != "$1" -o -z "$2" ] || eval "$0 $2"
 	}
 	config_load network
 	exit
 }
-
-config_load /var/state/network
-
-# remove the interface's network state
-FILE=/var/state/network.$$
-grep -v "^config_set '$1' " /var/state/network > "$FILE"
-mv "$FILE" /var/state/network
 
 include /lib/network
 scan_interfaces
@@ -68,3 +62,11 @@ done
 config_get iftype "$cfg" type
 [ "bridge" = "$iftype" ] && brctl delbr "$ifname" >/dev/null 2>/dev/null
 
+# remove the interface's network state
+uci_revert_state network "$1"
+
+# revert aliases state as well
+config_get aliases "$1" aliases
+for config in $aliases; do
+	uci_revert_state network "$config"
+done

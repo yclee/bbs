@@ -4,25 +4,24 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 7742 2007-06-27 05:26:20Z nbd $
+# $Id: Makefile 12225 2008-08-06 22:10:29Z nbd $
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=nvram
 PKG_RELEASE:=1
 
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
-
 include $(INCLUDE_DIR)/package.mk
 
 define Package/nvram
   SECTION:=utils
   CATEGORY:=Utilities
-  DEPENDS:=@LINUX_2_4_BRCM
+  DEPENDS:=@TARGET_brcm_2_4
   TITLE:=Broadcom config utility
-  DESCRIPTION:=\
-	This package contains an utility to control broadcom's 'nvram' config \\\
-	area.
+endef
+
+define Package/nvram/description
+ This package contains an utility to control broadcom's 'nvram' config area.
 endef
 
 define Build/Prepare
@@ -30,20 +29,18 @@ define Build/Prepare
 	$(CP) ./src/* $(PKG_BUILD_DIR)
 endef
 
-define Build/InstallDev
-	mkdir -p $(STAGING_DIR)/usr/lib
-	$(CP) $(PKG_BUILD_DIR)/lib{nvram,shared}*.so $(STAGING_DIR)/usr/lib/
-endef
+TARGET_CFLAGS += $(FPIC)
 
-define Build/UninstallDev
-	rm -f $(STAGING_DIR)/usr/lib/lib{nvram,shared}*.so
+define Build/InstallDev
+	mkdir -p $(1)/usr/lib
+	$(CP) $(PKG_BUILD_DIR)/libnvram*.so $(1)/usr/lib/
 endef
 
 define Package/nvram/install
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/nvram.init $(1)/etc/init.d/nvram
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_BUILD_DIR)/lib{nvram,shared}*.so $(1)/usr/lib/
+	$(CP) $(PKG_BUILD_DIR)/libnvram*.so $(1)/usr/lib/
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/nvram $(1)/usr/sbin/
 endef

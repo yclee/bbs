@@ -4,7 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 6582 2007-03-16 20:21:39Z nbd $
+# $Id: Makefile 8659 2007-09-07 08:34:51Z nico $
 
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
@@ -21,15 +21,15 @@ include $(INCLUDE_DIR)/package.mk
 
 define KernelPackage/rt2570
   SUBMENU:=Wireless Drivers
-  TITLE:=Driver for ralink usb wireless chipsets
+  TITLE:=Driver for Ralink RT2570 usb wireless chipsets
   DEPENDS:=@LINUX_2_4 @USB_SUPPORT +wireless-tools
-  DESCRIPTION:=\
-	This package contains a driver for ralink rt2570 usb chipsets.
   URL:=http://rt2x00.serialmonkey.com/
-  VERSION:=$(LINUX_VERSION)+$(PKG_VERSION)-$(BOARD)-$(PKG_RELEASE)
-  FILES:= \
-		$(PKG_BUILD_DIR)/Module/rt2570.$(LINUX_KMOD_SUFFIX)
+  FILES:=$(PKG_BUILD_DIR)/Module/rt2570.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,rt2570)
+endef
+
+define KernelPackage/rt2570/description
+ This package contains a driver for Ralink RT2570 usb chipsets.
 endef
 
 define Build/Compile

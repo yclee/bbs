@@ -3,7 +3,9 @@
 choice
 	prompt "GCC compiler Version" if TOOLCHAINOPTS
 	default GCC_VERSION_3_4_6 if LINUX_2_4
-	default GCC_VERSION_4_2_0 if LINUX_2_6_MAGICBOX
+	default GCC_VERSION_4_2_4 if TARGET_avr32
+	default GCC_VERSION_4_2_4 if TARGET_ppc40x
+	default GCC_VERSION_4_2_4 if TARGET_ppc44x
 	default GCC_VERSION_4_1_2
 	help
 	  Select the version of gcc you wish to use.
@@ -15,11 +17,19 @@ choice
 		depends !LINUX_2_4
 		bool "gcc 4.1.2"
 
-	config GCC_VERSION_4_2_0
+	config GCC_VERSION_4_2_4
 		depends !LINUX_2_4
-		bool "gcc 4.2.0"
+		bool "gcc 4.2.4"
 
 endchoice
+
+config EABI_SUPPORT
+	bool
+	depends arm||armeb
+	prompt "Enable EABI support" if TOOLCHAINOPTS
+	default n
+	help
+	  Enable ARM EABI support
 
 config EXTRA_GCC_CONFIG_OPTIONS
 	string
@@ -28,6 +38,13 @@ config EXTRA_GCC_CONFIG_OPTIONS
 	help
 	    Any additional gcc options you may want to include....
 
+config SSP_SUPPORT
+	bool
+	prompt "Enable Smash Stacking Protection support" if TOOLCHAINOPTS
+	default n
+	help
+	    Enable Smash Stacking Protection support
+
 config INSTALL_LIBSTDCPP
 	bool
 	prompt "Build/install c++ compiler and libstdc++?" if TOOLCHAINOPTS
@@ -35,4 +52,9 @@ config INSTALL_LIBSTDCPP
 	help
 	    Build/install c++ compiler and libstdc++?
 
-
+config INSTALL_LIBGCJ
+	bool
+	prompt "Build/install java compiler and GNU classpath ?" if TOOLCHAINOPTS
+	default n
+	help
+	    Build/install java compiler and GNU classpath ?

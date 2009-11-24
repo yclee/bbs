@@ -3,7 +3,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 6580 2007-03-16 19:18:55Z nbd $
+# $Id: Makefile 9694 2007-12-09 18:53:06Z nbd $
 
 include $(TOPDIR)/rules.mk
 
@@ -11,17 +11,20 @@ PKG_NAME:=gdbserver
 PKG_VERSION:=6.3
 PKG_RELEASE:=1
 
-GDB_DIR:=$(TOOLCHAIN_BUILD_DIR)/gdb-$(PKG_VERSION)
+GDB_DIR:=$(BUILD_DIR_TOOLCHAIN)/gdb-$(PKG_VERSION)
 
 include $(INCLUDE_DIR)/package.mk
 
 define Package/gdbserver
   SECTION:=utils
   CATEGORY:=Utilities
-  DEPENDS:=@GDB@
+  DEPENDS:=@GDB
   TITLE:=Remote Server for the GNU Debugger
-  DESCRIPTION:=GDBSERVER is a program that allows you to run GDB on a different machine\\\
-than the one which is running the program being debugged.
+endef
+
+define Package/gdbserver/description
+ GDBSERVER is a program that allows you to run GDB on a different machine 
+ than the one which is running the program being debugged.
 endef
 
 define Build/Configure
@@ -59,7 +62,7 @@ endef
 
 define Package/gdbserver/install	
 	$(INSTALL_DIR) $(1)/usr/bin
-	$(CP) $(PKG_INSTALL_DIR)/usr/bin/gdbserver $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/gdbserver $(1)/usr/bin/
 endef
 
 $(eval $(call BuildPackage,gdbserver))

@@ -30,7 +30,8 @@ define Package/Default
   SUBMENU:=
   SUBMENUDEP:=
   TITLE:=
-  DESCRIPTION:=
+  KCONFIG:=
+  BUILDONLY:=
 endef
 
 Build/Patch:=$(Build/Patch/Default)
@@ -38,28 +39,30 @@ ifneq ($(strip $(PKG_UNPACK)),)
   define Build/Prepare/Default
   	$(PKG_UNPACK)
 	$(Build/Patch)
+	$(if $(QUILT),touch $(PKG_BUILD_DIR)/.quilt_used)
   endef
 endif
 
-TARGET_CPPFLAGS:=-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/include
-TARGET_LDFLAGS:=-L$(STAGING_DIR)/usr/lib -L$(STAGING_DIR)/lib
+export PKG_CONFIG_PATH=$(STAGING_DIR)/usr/lib/pkgconfig:$(STAGING_DIR_HOST)/usr/lib/pkgconfig
+export PKG_CONFIG_LIBDIR=$(STAGING_DIR)/usr/lib/pkgconfig
 
+CONFIGURE_PREFIX:=/usr
 CONFIGURE_ARGS = \
 		--target=$(GNU_TARGET_NAME) \
 		--host=$(GNU_TARGET_NAME) \
 		--build=$(GNU_HOST_NAME) \
 		--program-prefix="" \
 		--program-suffix="" \
-		--prefix=/usr \
-		--exec-prefix=/usr \
-		--bindir=/usr/bin \
-		--sbindir=/usr/sbin \
-		--libexecdir=/usr/lib \
+		--prefix=$(CONFIGURE_PREFIX) \
+		--exec-prefix=$(CONFIGURE_PREFIX) \
+		--bindir=$(CONFIGURE_PREFIX)/bin \
+		--sbindir=$(CONFIGURE_PREFIX)/sbin \
+		--libexecdir=$(CONFIGURE_PREFIX)/lib \
 		--sysconfdir=/etc \
-		--datadir=/usr/share \
+		--datadir=$(CONFIGURE_PREFIX)/share \
 		--localstatedir=/var \
-		--mandir=/usr/man \
-		--infodir=/usr/info \
+		--mandir=$(CONFIGURE_PREFIX)/man \
+		--infodir=$(CONFIGURE_PREFIX)/info \
 		$(DISABLE_NLS)
 
 CONFIGURE_VARS = \
@@ -67,17 +70,20 @@ CONFIGURE_VARS = \
 		CFLAGS="$(TARGET_CFLAGS) $(EXTRA_CFLAGS)" \
 		CXXFLAGS="$(TARGET_CFLAGS) $(EXTRA_CFLAGS)" \
 		CPPFLAGS="$(TARGET_CPPFLAGS) $(EXTRA_CPPFLAGS)" \
-		LDFLAGS="$(TARGET_LDFLAGS)" \
-		PKG_CONFIG_PATH="$(STAGING_DIR)/usr/lib/pkgconfig" \
-		PKG_CONFIG_LIBDIR="$(STAGING_DIR)/usr/lib/pkgconfig"
+		LDFLAGS="$(TARGET_LDFLAGS) $(EXTRA_LDFLAGS)" \
+		PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" \
+		PKG_CONFIG_LIBDIR="$(PKG_CONFIG_LIBDIR)"
 
 CONFIGURE_PATH = .
 CONFIGURE_CMD = ./configure
 
+replace_script=$(FIND) $(1) -name $(2) | $(XARGS) chmod u+w; $(FIND) $(1) -name $(2) | $(XARGS) -n1 cp $(SCRIPT_DIR)/$(2);
+
 define Build/Configure/Default
 	(cd $(PKG_BUILD_DIR)/$(CONFIGURE_PATH)/$(strip $(3)); \
 	if [ -x $(CONFIGURE_CMD) ]; then \
-		$(CP) $(SCRIPT_DIR)/config.{guess,sub} $(PKG_BUILD_DIR)/$(3)/ && \
+		$(call replace_script,$(PKG_BUILD_DIR)/$(3),config.guess) \
+		$(call replace_script,$(PKG_BUILD_DIR)/$(3),config.sub) \
 		$(CONFIGURE_VARS) \
 		$(2) \
 		$(CONFIGURE_CMD) \
@@ -88,14 +94,18 @@ define Build/Configure/Default
 endef
 
 MAKE_VARS = \
-	CFLAGS="$(TARGET_CFLAGS) $(EXTRA_CFLAGS)" \
-	CXXFLAGS="$(TARGET_CFLAGS) $(EXTRA_CFLAGS)" \
-	LDFLAGS="$(EXTRA_LDFLAGS) "
+	CFLAGS="$(TARGET_CFLAGS) $(EXTRA_CFLAGS) $(TARGET_CPPFLAGS) $(EXTRA_CPPFLAGS)" \
+	CXXFLAGS="$(TARGET_CFLAGS) $(EXTRA_CFLAGS) $(TARGET_CPPFLAGS) $(EXTRA_CPPFLAGS)" \
+	LDFLAGS="$(TARGET_LDFLAGS) $(EXTRA_LDFLAGS)"
 
 MAKE_FLAGS = \
 	$(TARGET_CONFIGURE_OPTS) \
 	CROSS="$(TARGET_CROSS)" \
 	ARCH="$(ARCH)"
+
+MAKE_INSTALL_FLAGS = \
+	$(MAKE_FLAGS) \
+	DESTDIR="$(PKG_INSTALL_DIR)"
 
 MAKE_PATH = .
 
@@ -106,4 +116,9 @@ define Build/Compile/Default
 		$(1);
 endef
 
-
+define Build/Install/Default
+	$(MAKE_VARS) \
+	$(MAKE) -C $(PKG_BUILD_DIR)/$(MAKE_PATH) \
+		$(MAKE_INSTALL_FLAGS) \
+		$(1) install;
+endef

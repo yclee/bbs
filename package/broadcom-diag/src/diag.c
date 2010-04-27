@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  *
- * $Id: diag.c 15745 2009-05-09 21:28:33Z nbd $
+ * $Id: diag.c 16435 2009-06-13 15:57:49Z florian $
  */
 #include <linux/module.h>
 #include <linux/pci.h>
@@ -55,6 +55,7 @@ module_param(gpiomask, int, 0644);
 enum {
 	/* Linksys */
 	WAP54GV1,
+	WAP54GV2,
 	WAP54GV3,
 	WRT54GV1,
 	WRT54G,
@@ -165,6 +166,16 @@ static struct platform_t __initdata platforms[] = {
 		.leds		= {
 			{ .name = "diag",	.gpio = 1 << 3 },
 			{ .name = "wlan",	.gpio = 1 << 4 },
+		},
+	},
+	[WAP54GV2] = {
+		.name		= "Linksys WAP54G V2",
+		.buttons	= {
+			{ .name = "reset",	.gpio = 1 << 0 },
+		},
+		.leds		= {
+			{ .name = "wlan",	.gpio = 1 << 5, .polarity = REVERSE },
+			/* GPIO 6 is b44 (eth0, LAN) PHY power */
 		},
 	},
 	[WAP54GV3] = {
@@ -838,6 +849,8 @@ static struct platform_t __init *platform_detect(void)
 			/* default to WRT54G */
 			return &platforms[WRT54G];
 		}
+		if (!strcmp(boardnum, "1024") && !strcmp(boardtype, "0x0446"))
+			return &platforms[WAP54GV2];
 
 		if (!strcmp(boardnum, "44") || !strcmp(boardnum, "44\r")) {
 			if (!strcmp(boardtype,"0x0101") || !strcmp(boardtype, "0x0101\r"))

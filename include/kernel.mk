@@ -100,7 +100,7 @@ define KernelPackage
   $(eval $(call KernelPackage/Defaults))
   $(eval $(call KernelPackage/$(1)))
   $(eval $(call KernelPackage/$(1)/$(KERNEL)))
-  $(eval $(call KernelPackage/$(1)/$(BOARD)-$(KERNEL)))
+  $(eval $(call KernelPackage/$(1)/$(BOARD)))
 
   define Package/kmod-$(1)
     TITLE:=$(TITLE)
@@ -111,7 +111,7 @@ define KernelPackage
     VERSION:=$(LINUX_VERSION)$(if $(PKG_VERSION),+$(PKG_VERSION))-$(BOARD)-$(if $(PKG_RELEASE),$(PKG_RELEASE),$(LINUX_RELEASE))
     $(call KernelPackage/$(1))
     $(call KernelPackage/$(1)/$(KERNEL))
-    $(call KernelPackage/$(1)/$(BOARD)-$(KERNEL))
+    $(call KernelPackage/$(1)/$(BOARD))
   endef
 
   ifdef KernelPackage/$(1)/description

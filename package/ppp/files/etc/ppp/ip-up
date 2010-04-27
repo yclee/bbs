@@ -13,12 +13,15 @@ export PPP_IFACE PPP_TTY PPP_SPEED PPP_LOCAL PPP_REMOTE PPP_IPPARAM
 	uci_set_state network "$PPP_IPPARAM" unit "$PPP_UNIT"
 	uci_set_state network "$PPP_IPPARAM" ipaddr "$PPP_LOCAL"
 	uci_set_state network "$PPP_IPPARAM" gateway "$PPP_REMOTE"
+
+	local dns="$DNS1${DNS2:+ $DNS2}"
+	[ -n "$dns" ] && uci_set_state network "$PPP_IPPARAM" dns "$dns"
 }
 [ -z "$PPP_IPPARAM" ] || env -i ACTION="ifup" INTERFACE="$PPP_IPPARAM" DEVICE="$PPP_IFACE" PROTO=ppp /sbin/hotplug-call "iface"
 
 [ -d /etc/ppp/ip-up.d ] && {
 	for SCRIPT in /etc/ppp/ip-up.d/*
 	do
-		[ -x "$SCRIPT" ] && "$SCRIPT" $@
+		[ -x "$SCRIPT" ] && "$SCRIPT" "$@"
 	done
 }

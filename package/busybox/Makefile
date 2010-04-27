@@ -4,13 +4,13 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 15322 2009-04-21 11:47:48Z nico $
+# $Id: Makefile 18529 2009-11-24 22:17:35Z florian $
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=busybox
 PKG_VERSION:=1.11.2
-PKG_RELEASE:=2.1
+PKG_RELEASE:=2.2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=http://www.busybox.net/downloads \

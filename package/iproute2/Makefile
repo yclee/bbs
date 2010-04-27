@@ -4,7 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 11598 2008-06-28 17:32:21Z blogic $
+# $Id: Makefile 18348 2009-11-08 22:50:07Z nico $
 
 include $(TOPDIR)/rules.mk
 
@@ -79,6 +79,3 @@ $(eval $(call BuildPackage,ip))
 $(eval $(call BuildPackage,tc))
 $(eval $(call BuildPackage,genl))
 
-$(eval $(call RequireCommand,bison, \
-	$(PKG_NAME) requires GNU bison. \
-))

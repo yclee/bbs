@@ -4,13 +4,13 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 15880 2009-05-17 00:25:41Z nico $
+# $Id: Makefile 17361 2009-08-24 10:19:44Z nico $
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=openssl
 PKG_VERSION:=0.9.8i
-PKG_RELEASE:=3.1
+PKG_RELEASE:=3.2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=http://www.openssl.org/source/ \

@@ -1,10 +1,10 @@
 # 
-# Copyright (C) 2006-2008 OpenWrt.org
+# Copyright (C) 2006-2009 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: Makefile 12689 2008-09-24 17:11:41Z nico $
+# $Id: Makefile 17199 2009-08-09 11:12:58Z florian $
 
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
@@ -17,7 +17,11 @@ PKG_CPU:=$(shell uname -m)
 
 SDK_NAME:=OpenWrt-SDK-$(BOARD)-for-$(PKG_OS)-$(PKG_CPU)
 SDK_BUILD_DIR:=$(BUILD_DIR)/$(SDK_NAME)
-EXCLUDE_DIRS:=*/ccache */stamp */man */share */stampfiles */info
+EXCLUDE_DIRS:=*/ccache \
+	*/stamp \
+	*/stampfiles \
+	*/man \
+	*/info
 
 SVN_PACKAGE_URL=$(shell svn info ../../package | awk '/^URL:/ { print $$2; }')
 
@@ -37,7 +41,6 @@ $(BIN_DIR)/$(SDK_NAME).tar.bz2: clean
 		$(TOPDIR)/LICENSE \
 		$(TOPDIR)/rules.mk \
 		$(TOPDIR)/.config \
-		./files/Config.in \
 		./files/Makefile \
 		./files/README.SDK \
 		$(SDK_BUILD_DIR)/
@@ -45,11 +48,12 @@ $(BIN_DIR)/$(SDK_NAME).tar.bz2: clean
 		./files/package/rules.mk \
 		$(TOPDIR)/package/Makefile \
 		$(SDK_BUILD_DIR)/package/
-	echo "src-svn trunk $(SVN_PACKAGE_URL)" \
+	echo "src-svn base $(SVN_PACKAGE_URL)" \
 		> $(SDK_BUILD_DIR)/feeds.conf.default
 	cat $(TOPDIR)/feeds.conf.default \
 		>> $(SDK_BUILD_DIR)/feeds.conf.default
-	echo REVISION:="$(REVISION)" > $(SDK_BUILD_DIR)/include/version.mk
+	echo -e 'KERNEL:=$(KERNEL)\nLINUX_VERSION:=$(LINUX_VERSION)\nREVISION:=$(REVISION)' \
+		>$(SDK_BUILD_DIR)/include/version.mk
 	find $(SDK_BUILD_DIR) -name .git | $(XARGS) rm -rf
 	find $(SDK_BUILD_DIR) -name .svn | $(XARGS) rm -rf
 	find $(SDK_BUILD_DIR) -name CVS | $(XARGS) rm -rf
